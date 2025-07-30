@@ -31,3 +31,8 @@ Thumbs.db
 archive/
 reports/
 IRIS/*.html
+# Ignore the top-level reports directory inside IRISX
+reports/
+
+# Do NOT ignore the reports directory inside IRISX/IRIS
+!IRIS/reports/
