@@ -36,3 +36,6 @@ reports/
 
 # Do NOT ignore the reports directory inside IRISX/IRIS
 !IRIS/reports/
+
+# Ignore only .html files in IRISX/IRIS/reports
+/IRISX/IRIS/reports/*.html
