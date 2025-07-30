@@ -1,0 +1,33 @@
+# Byte-compiled / cache files
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+env/
+venv/
+ENV/
+
+# IDE/editor configs
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Secrets
+.env
+*.key
+*.pem
+
+# Directory specific
+archive/
+reports/
+IRIS/*.html
