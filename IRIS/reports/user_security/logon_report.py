@@ -1,39 +1,72 @@
-import sys
-from typing import Any
-
-# Import necessary components from helpers.py using relative path
+import re
+from typing import List, Dict, Any
 from ...helpers import MockAppInstance, Helpers
+from ...analysis.security_advisor import SecurityAdvisor
+
+def get_logon_data(helpers: Helpers, app_instance: Any) -> Dict[str, Any]:
+    """Collects logon information using system commands."""
+    data = {
+        "os_type": helpers.os_type,
+        "logons": [],
+        "summary": {"total": 0, "unique_users": 0}
+    }
+    
+    app_instance.log_output("Gathering Logon History...")
+    
+    if helpers.os_type in ["darwin", "linux"]:
+        # Use 'last' command
+        # Output format examples:
+        # spencer   ttys000                   Thu Jan  9 15:43   still logged in
+        # reboot     system boot  6.0.0-kali3- Thu Jan  9 ...
+        raw_output = helpers.run_command("last -n 50", check_shell=True, app_instance=app_instance)
+        
+        if raw_output:
+            for line in raw_output.splitlines():
+                if not line or line.startswith("wtmp begins") or line.strip() == "":
+                    continue
+                
+                parts = line.split()
+                if len(parts) > 2:
+                    user = parts[0]
+                    tty = parts[1]
+                    # We store the raw line for display to preserve formatting of time/duration
+                    data["logons"].append({
+                        "user": user,
+                        "tty": tty,
+                        "raw": line
+                    })
+
+    # Basic stats
+    data["summary"]["total"] = len(data["logons"])
+    data["summary"]["unique_users"] = len(set(l["user"] for l in data["logons"]))
+    
+    return data
 
 def generate_logon_report(app_instance: Any, helpers: Any, browser_preference: str = "System Default"):
-    """Generates a report on logon activity and user creation events."""
-    app_instance.log_output("\n--- Generating Logon Report ---")
+    app_instance.log_output("\n--- Generating Logon & User Creation Report ---")
     
-    html_body = "<h2>Logon & User Creation Report</h2>"
-
-    if sys.platform.startswith("linux"):
-        app_instance.log_output("Searching for user creation and SSH login events in /var/log/auth.log...")
-        # Grep for useradd events and successful/failed SSH logins
-        logon_events = helpers.run_command(
-            "grep -E 'useradd|sshd.*(Accepted|Failed)' /var/log/auth.log",
-            check_shell=True,
-            app_instance=app_instance
-        )
-
-        html_body += "<h3>Linux User Creation & SSH Login Events</h3>"
-        if logon_events:
-            html_body += "<p>The following are relevant raw events from <code>/var/log/auth.log</code>. Review for unauthorized user creation or suspicious login patterns.</p>"
-            html_body += f"<pre>{logon_events}</pre>"
-        else:
-            html_body += "<p>No recent user creation or SSH login events found in <code>/var/log/auth.log</code>.</p>"
-
+    data = get_logon_data(helpers, app_instance)
+    
+    # Analyze
+    advisor = SecurityAdvisor()
+    # advisor.analyze_logons(data) 
+    
+    html_body = "<h2>Logon History (Last 50)</h2>"
+    
+    if data['logons']:
+        html_body += f"<p>Total Events: {data['summary']['total']} | Unique Users: {data['summary']['unique_users']}</p>"
+        html_body += "<table><thead><tr><th>User</th><th>TTY</th><th>Details</th></tr></thead><tbody>"
+        for l in data['logons']:
+            html_body += f"<tr><td>{l['user']}</td><td>{l['tty']}</td><td>{l['raw']}</td></tr>"
+        html_body += "</tbody></table>"
     else:
-        html_body += "<p>Logon activity reporting for this OS is not yet fully implemented. This would typically involve parsing security event logs (Windows) or unified logs (macOS) for login/logout events.</p>"
+        html_body += "<p>No logon history found (or command failed).</p>"
 
     helpers.generate_report_html(
-        app_instance, 
-        app_instance.suspect_computer_name, 
-        "Logon_Report.html", 
-        "Logon Report", 
+        app_instance,
+        app_instance.suspect_computer_name,
+        "Logon_Report.html",
+        "Logon & User Creation Report",
         html_body,
         browser_preference=browser_preference
     )

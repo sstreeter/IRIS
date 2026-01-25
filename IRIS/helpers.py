@@ -3,9 +3,16 @@ import plistlib
 import re
 from dataclasses import dataclass
 from typing import List, Optional, Dict, Any, Union
+import platform
 import subprocess
 import datetime
 import webbrowser
+import shutil
+
+try:
+    import distro
+except ImportError:
+    distro = None
 
 # --- Data classes ---
 @dataclass
@@ -45,6 +52,31 @@ class MockAppInstance:
 class Helpers:
     def __init__(self, use_mock: bool = True):
         self.use_mock = use_mock
+        self.os_type = self.get_os_type()
+
+    def get_os_type(self) -> str:
+        """Returns 'windows', 'darwin', or 'linux'. """
+        system = platform.system().lower()
+        if system == "darwin": return "darwin"
+        if system == "windows": return "windows"
+        if system == "linux": return "linux"
+        return "unknown"
+
+    def get_linux_distro(self) -> str:
+        """Returns specific linux distro if on Linux, else empty string."""
+        if self.os_type == 'linux':
+            if distro:
+                return distro.name(pretty=True)
+            else:
+                # Fallback if distro module not installed
+                try:
+                    with open("/etc/os-release") as f:
+                        for line in f:
+                            if line.startswith("PRETTY_NAME="):
+                                return line.split("=")[1].strip().strip('"')
+                except:
+                    return "Linux (Unknown Distro)"
+        return ""
 
     def log_output(self, app_instance: Any, *args):
         if app_instance:
@@ -172,6 +204,8 @@ USER       PID  %CPU %MEM      VSZ    RSS   TT  STAT STARTED      TIME COMMAND
 root         1   0.0  0.0   167404   1156   ??  Ss   Jul24     0:00.01 /sbin/launchd
 spencer    666   0.5  0.1   123456   7890   ??  S    Jul24     0:05.00 /usr/bin/python3 -c '...'
 root      1234   0.1  0.5   456789   8765   ??  S    Jul24     1:01.23 /usr/sbin/sshd
+root      8888   0.2  0.5   555555   5555   ??  S    Jul24     2:34.56 /Applications/Falcon.app/Contents/Resources/falcon-sensor
+root      9999   0.1  0.1   111111   1111   ??  S    Jul24     0:12.34 /usr/libexec/XProtectService
 """
         elif "grep -E" in command and "~/.bash_history" in command:
             return """
@@ -232,7 +266,6 @@ drwxr-xr-x  1 root    root    4096 Jul 25 10:00 ..
         pre {{ background-color: #eee; padding: 15px; border: 1px solid #ccc; border-radius: 5px; white-space: pre-wrap; word-wrap: break-word; font-family: "Courier New", Courier, monospace; }}
         .footer {{ text-align: center; margin-top: 30px; font-size: 0.9em; color: #777; }}
         .filter-container {{ margin-bottom: 15px; }}
-        #tableFilter {{ padding: 8px; width: 300px; border: 1px solid #ddd; border-radius: 4px; }}
         th.sortable {{ cursor: pointer; position: relative; }}
         th.sortable:hover {{ background-color: #e8e8e8; }}
         th.sortable::after {{ content: ''; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 0.8em; opacity: 0.5; }}
@@ -269,7 +302,7 @@ drwxr-xr-x  1 root    root    4096 Jul 25 10:00 ..
         }});
     }}
 
-    function sortTable(table, column, asc = true) {{
+    function sortTable(table, column, asc) {{
         const dirModifier = asc ? 1 : -1;
         const tBody = table.tBodies[0];
         const rows = Array.from(tBody.querySelectorAll("tr"));
@@ -291,20 +324,31 @@ drwxr-xr-x  1 root    root    4096 Jul 25 10:00 ..
         }}
         tBody.append(...sortedRows);
 
-        table.querySelectorAll("th").forEach(th => th.classList.remove("sort-asc", "sort-desc"));
-        table.querySelector(`th:nth-child(${{column + 1}})`).classList.toggle("sort-asc", asc);
-        table.querySelector(`th:nth-child(${{column + 1}})`).classList.toggle("sort-desc", !asc);
+        // Update classes and data attribute for visual indication and next sort state
+        table.querySelectorAll("th").forEach(th => {{
+            th.classList.remove("sort-asc", "sort-desc");
+            th.removeAttribute("data-sort-direction"); // Clear previous state
+        }});
+        const currentHeader = table.querySelector(`th:nth-child(${{column + 1}})`);
+        currentHeader.classList.toggle("sort-asc", asc);
+        currentHeader.classList.toggle("sort-desc", !asc);
+        currentHeader.setAttribute("data-sort-direction", asc ? "asc" : "desc");
     }}
 
     document.querySelectorAll("th").forEach(headerCell => {{
-        // Only make headers of tables with a tbody sortable
         const table = headerCell.closest("table");
         if (table && table.tBodies[0] && table.tBodies[0].rows.length > 0) {{
             headerCell.classList.add("sortable");
             headerCell.addEventListener("click", () => {{
                 const headerIndex = Array.prototype.indexOf.call(headerCell.parentElement.children, headerCell);
-                const currentIsAsc = headerCell.classList.contains("sort-asc");
-                sortTable(table, headerIndex, !currentIsAsc);
+                
+                // Determine the next sort direction: if currently ascending, next is descending; otherwise, ascending.
+                let nextIsAsc = true;
+                if (headerCell.classList.contains("sort-asc")) {{
+                    nextIsAsc = false;
+                }}
+                
+                sortTable(table, headerIndex, nextIsAsc);
             }});
         }}
     }});

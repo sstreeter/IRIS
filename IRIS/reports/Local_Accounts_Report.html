@@ -1,0 +1,103 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local User Accounts Report</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; background-color: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 0 15px rgba(0,0,0,0.1); }
+        h1, h2, h3 { color: #0056b3; border-bottom: 2px solid #0056b3; padding-bottom: 5px; }
+        h1 { font-size: 2em; } h2 { font-size: 1.5em; margin-top: 30px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #f2f2f2; font-weight: bold; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        pre { background-color: #eee; padding: 15px; border: 1px solid #ccc; border-radius: 5px; white-space: pre-wrap; word-wrap: break-word; font-family: "Courier New", Courier, monospace; }
+        .footer { text-align: center; margin-top: 30px; font-size: 0.9em; color: #777; }
+        .filter-container { margin-bottom: 15px; }
+        #tableFilter { padding: 8px; width: 300px; border: 1px solid #ddd; border-radius: 4px; }
+        th.sortable { cursor: pointer; position: relative; }
+        th.sortable:hover { background-color: #e8e8e8; }
+        th.sortable::after { content: ''; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 0.8em; opacity: 0.5; }
+        th.sort-asc::after { content: ' ▲'; opacity: 1; }
+        th.sort-desc::after { content: ' ▼'; opacity: 1; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Local User Accounts Report</h1>
+        <p><strong>Suspect Computer:</strong> s-it-wfh-s-spencer-imac2017</p>
+        <p><strong>Report Generated:</strong> 2025-07-29 23:29:08</p>
+        
+            <div class="filter-container">
+                <label for="tableFilter">Filter results:</label>
+                <input type="text" id="tableFilter" onkeyup="filterTable()" placeholder="Type to search...">
+            </div>
+            
+        <h2>Local User Accounts</h2><h3>Standard & Administrator Accounts</h3><table><tr><th>Name</th><th>Real Name</th><th>Is Admin</th><th>UniqueID</th><th>Home Directory</th><th>Login Shell</th></tr><tr><td>nobody</td><td></td><td>No</td><td>-2</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>root</td><td></td><td>Yes</td><td>0</td><td>/var/root /private/var/root</td><td>/bin/sh</td></tr><tr><td>daemon</td><td></td><td>No</td><td>1</td><td>/var/root</td><td>/usr/bin/false</td></tr><tr><td>bioit</td><td>bioit</td><td>Yes</td><td>501</td><td>/private/var/bioit</td><td>/bin/zsh</td></tr><tr><td>james</td><td>james</td><td>Yes</td><td>502</td><td>/Users/james</td><td>/bin/zsh</td></tr><tr><td>spencer</td><td>spencer</td><td>Yes</td><td>503</td><td>/Users/spencer</td><td>/bin/zsh</td></tr><tr><td>postgres</td><td>PostgreSQL</td><td>No</td><td>504</td><td>/Library/PostgreSQL/17</td><td>/bin/bash</td></tr></table><h3>System Accounts</h3><table><tr><th>Name</th><th>Real Name</th><th>UniqueID</th><th>Home Directory</th><th>Login Shell</th></tr><tr><td>_accessoryupdater</td><td></td><td>278</td><td>/var/db/accessoryupdater</td><td>/usr/bin/false</td></tr><tr><td>_amavisd</td><td></td><td>83</td><td>/var/virusmails</td><td>/usr/bin/false</td></tr><tr><td>_analyticsd</td><td></td><td>263</td><td>/var/db/analyticsd</td><td>/usr/bin/false</td></tr><tr><td>_appinstalld</td><td></td><td>273</td><td>/var/db/appinstalld</td><td>/usr/bin/false</td></tr><tr><td>_appleevents</td><td></td><td>55</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_applepay</td><td></td><td>260</td><td>/var/db/applepay</td><td>/usr/bin/false</td></tr><tr><td>_appowner</td><td></td><td>87</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_appserver</td><td></td><td>79</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_appstore</td><td></td><td>33</td><td>/var/db/appstore</td><td>/usr/bin/false</td></tr><tr><td>_ard</td><td></td><td>67</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_assetcache</td><td></td><td>235</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_astris</td><td></td><td>245</td><td>/var/db/astris</td><td>/usr/bin/false</td></tr><tr><td>_atsserver</td><td></td><td>97</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_avbdeviced</td><td></td><td>229</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_avectodaemon</td><td>_avectodaemon</td><td>300</td><td>N/A</td><td>/usr/bin/true</td></tr><tr><td>_avphidbridge</td><td></td><td>288</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_backgroundassets</td><td></td><td>291</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_biome</td><td>Biome</td><td>289</td><td>/var/db/biome</td><td>/usr/bin/false</td></tr><tr><td>_calendar</td><td>Calendar</td><td>93</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_captiveagent</td><td>captiveagent</td><td>258</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_ces</td><td></td><td>32</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_clamav</td><td></td><td>82</td><td>/var/virusmails</td><td>/usr/bin/false</td></tr><tr><td>_cmiodalassistants</td><td></td><td>262</td><td>/var/db/cmiodalassistants</td><td>/usr/bin/false</td></tr><tr><td>_coreaudiod</td><td></td><td>202</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_coremediaiod</td><td></td><td>236</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_coreml</td><td></td><td>280</td><td>/var/db/coreml</td><td>/usr/bin/false</td></tr><tr><td>_ctkd</td><td></td><td>259</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_cvmsroot</td><td></td><td>212</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_cvs</td><td></td><td>72</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_cyrus</td><td></td><td>77</td><td>/var/imap</td><td>/usr/bin/false</td></tr><tr><td>_darwindaemon</td><td></td><td>284</td><td>/var/db/darwindaemon</td><td>/usr/bin/false</td></tr><tr><td>_datadetectors</td><td>DataDetectors</td><td>257</td><td>/var/db/datadetectors</td><td>/usr/bin/false</td></tr><tr><td>_defendpoint</td><td>_defendpoint</td><td>301</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_demod</td><td></td><td>275</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_devdocs</td><td></td><td>59</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_devicemgr</td><td></td><td>220</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_diskimagesiod</td><td></td><td>271</td><td>/var/db/diskimagesiod</td><td>/usr/bin/false</td></tr><tr><td>_displaypolicyd</td><td></td><td>244</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_distnote</td><td>DistNote</td><td>241</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_dovecot</td><td></td><td>214</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_dovenull</td><td></td><td>227</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_dpaudio</td><td></td><td>215</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_driverkit</td><td>DriverKit</td><td>270</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_eppc</td><td></td><td>71</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_findmydevice</td><td></td><td>254</td><td>/var/db/findmydevice</td><td>/usr/bin/false</td></tr><tr><td>_fpsd</td><td></td><td>265</td><td>/var/db/fpsd</td><td>/usr/bin/false</td></tr><tr><td>_ftp</td><td></td><td>98</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_gamecontrollerd</td><td></td><td>247</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_geod</td><td></td><td>56</td><td>/var/db/geod</td><td>/usr/bin/false</td></tr><tr><td>_hidd</td><td></td><td>261</td><td>/var/db/hidd</td><td>/usr/bin/false</td></tr><tr><td>_iconservices</td><td>IconServices</td><td>240</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_installassistant</td><td></td><td>25</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_installcoordinationd</td><td></td><td>274</td><td>/var/db/installcoordinationd</td><td>/usr/bin/false</td></tr><tr><td>_installer</td><td>Installer</td><td>96</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_jabber</td><td></td><td>84</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_kadmin_admin</td><td></td><td>218</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_kadmin_changepw</td><td></td><td>219</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_knowledgegraphd</td><td></td><td>279</td><td>/var/db/knowledgegraphd</td><td>/usr/bin/false</td></tr><tr><td>_krb_anonymous</td><td></td><td>234</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_krb_changepw</td><td></td><td>232</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_krb_kadmin</td><td></td><td>231</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_krb_kerberos</td><td></td><td>233</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_krb_krbtgt</td><td></td><td>230</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_krbfast</td><td></td><td>246</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_krbtgt</td><td></td><td>217</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_launchservicesd</td><td>_launchservicesd</td><td>239</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_lda</td><td></td><td>211</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_locationd</td><td></td><td>205</td><td>/var/db/locationd</td><td>/usr/bin/false</td></tr><tr><td>_logd</td><td></td><td>272</td><td>/var/db/diagnostics</td><td>/usr/bin/false</td></tr><tr><td>_lp</td><td></td><td>26</td><td>/var/spool/cups</td><td>/usr/bin/false</td></tr><tr><td>_mailman</td><td></td><td>78</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_mbsetupuser</td><td></td><td>248</td><td>/var/setup</td><td>/bin/bash</td></tr><tr><td>_mcxalr</td><td></td><td>54</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_mdatp</td><td>_mdatp</td><td>499</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_mdnsresponder</td><td>mDNSResponder</td><td>65</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_mmaintenanced</td><td>mmaintenanced</td><td>283</td><td>/var/db/mmaintenanced</td><td>/usr/bin/false</td></tr><tr><td>_mobileasset</td><td></td><td>253</td><td>/var/ma</td><td>/usr/bin/false</td></tr><tr><td>_mysql</td><td></td><td>74</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_nearbyd</td><td></td><td>268</td><td>/var/db/nearbyd</td><td>/usr/bin/false</td></tr><tr><td>_netbios</td><td>NetBIOS</td><td>222</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_netstatistics</td><td></td><td>228</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_networkd</td><td></td><td>24</td><td>/var/networkd</td><td>/usr/bin/false</td></tr><tr><td>_notification_proxy</td><td></td><td>285</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_nsurlsessiond</td><td></td><td>242</td><td>/var/db/nsurlsessiond</td><td>/usr/bin/false</td></tr><tr><td>_oahd</td><td></td><td>441</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_ondemand</td><td></td><td>249</td><td>/var/db/ondemand</td><td>/usr/bin/false</td></tr><tr><td>_postfix</td><td></td><td>27</td><td>/var/spool/postfix</td><td>/usr/bin/false</td></tr><tr><td>_postgres</td><td></td><td>216</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_qtss</td><td></td><td>76</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_reportmemoryexception</td><td>ReportMemoryException</td><td>269</td><td>/var/db/reportmemoryexception</td><td>/usr/bin/false</td></tr><tr><td>_rmd</td><td></td><td>277</td><td>/var/db/rmd</td><td>/usr/bin/false</td></tr><tr><td>_sandbox</td><td>Seatbelt</td><td>60</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_screensaver</td><td>Screensaver</td><td>203</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_scsd</td><td></td><td>31</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_securityagent</td><td>SecurityAgent</td><td>92</td><td>/var/db/securityagent</td><td>/usr/bin/false</td></tr><tr><td>_sntpd</td><td></td><td>281</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_softwareupdate</td><td></td><td>200</td><td>/var/db/softwareupdate</td><td>/usr/bin/false</td></tr><tr><td>_spotlight</td><td>Spotlight</td><td>89</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_sshd</td><td></td><td>75</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_svn</td><td></td><td>73</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_taskgated</td><td></td><td>13</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_teamsserver</td><td>TeamsServer</td><td>94</td><td>/var/teamsserver</td><td>/usr/bin/false</td></tr><tr><td>_timed</td><td></td><td>266</td><td>/var/db/timed</td><td>/usr/bin/false</td></tr><tr><td>_timezone</td><td>AutoTimeZoneDaemon</td><td>210</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_tokend</td><td></td><td>91</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_trustd</td><td>trustd</td><td>282</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_trustevaluationagent</td><td></td><td>208</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_unknown</td><td></td><td>99</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_update_sharing</td><td></td><td>95</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_usbmuxd</td><td></td><td>213</td><td>/var/db/lockdown</td><td>/usr/bin/false</td></tr><tr><td>_uucp</td><td></td><td>4</td><td>/var/spool/uucp</td><td>/usr/sbin/uucico</td></tr><tr><td>_warmd</td><td></td><td>224</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_webauthserver</td><td></td><td>221</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_windowserver</td><td>WindowServer</td><td>88</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_www</td><td></td><td>70</td><td>/Library/WebServer</td><td>/usr/bin/false</td></tr><tr><td>_wwwproxy</td><td></td><td>252</td><td>/var/empty</td><td>/usr/bin/false</td></tr><tr><td>_xserverdocs</td><td></td><td>251</td><td>/var/empty</td><td>/usr/bin/false</td></tr></table><h3>Analyst Notes</h3><p>To identify potentially compromised accounts, analysts should look for:</p><ul><li><b>Unexpected Administrators:</b> Accounts with admin privileges that are not documented or expected.</li><li><b>Anomalous Shells:</b> Users with interactive login shells (e.g., /bin/bash) that shouldn't have them (like service accounts).</li><li><b>Unusual Home Directories:</b> Home directories in unexpected locations like /tmp or /var/tmp.</li><li><b>Low UIDs:</b> On Linux/macOS, a non-root user with a low UID (e.g., < 500) can be suspicious.</li></ul>
+        <div class="footer"><p>IRIS Incident Response Report</p></div>
+    </div>
+    <script>
+    function filterTable() {
+        const filter = document.getElementById("tableFilter").value.toUpperCase();
+        const tables = document.querySelectorAll("table");
+        tables.forEach(table => {
+            const rows = table.getElementsByTagName("tr");
+            for (let i = 1; i < rows.length; i++) { // Start at 1 to skip header row
+                const cells = rows[i].getElementsByTagName("td");
+                let found = false;
+                for (let j = 0; j < cells.length; j++) {
+                    if (cells[j] && cells[j].textContent.toUpperCase().indexOf(filter) > -1) {
+                        found = true;
+                        break;
+                    }
+                }
+                rows[i].style.display = found ? "" : "none";
+            }
+        });
+    }
+
+    function sortTable(table, column, asc = true) {
+        const dirModifier = asc ? 1 : -1;
+        const tBody = table.tBodies[0];
+        const rows = Array.from(tBody.querySelectorAll("tr"));
+
+        const sortedRows = rows.sort((a, b) => {
+            const aColText = a.querySelector(`td:nth-child(${column + 1})`).textContent.trim();
+            const bColText = b.querySelector(`td:nth-child(${column + 1})`).textContent.trim();
+            // Basic numeric comparison
+            const aNum = parseFloat(aColText);
+            const bNum = parseFloat(bColText);
+            if (!isNaN(aNum) && !isNaN(bNum)) {
+                return (aNum - bNum) * dirModifier;
+            }
+            return aColText.localeCompare(bColText) * dirModifier;
+        });
+
+        while (tBody.firstChild) {
+            tBody.removeChild(tBody.firstChild);
+        }
+        tBody.append(...sortedRows);
+
+        table.querySelectorAll("th").forEach(th => th.classList.remove("sort-asc", "sort-desc"));
+        table.querySelector(`th:nth-child(${column + 1})`).classList.toggle("sort-asc", asc);
+        table.querySelector(`th:nth-child(${column + 1})`).classList.toggle("sort-desc", !asc);
+    }
+
+    document.querySelectorAll("th").forEach(headerCell => {
+        // Only make headers of tables with a tbody sortable
+        const table = headerCell.closest("table");
+        if (table && table.tBodies[0] && table.tBodies[0].rows.length > 0) {
+            headerCell.classList.add("sortable");
+            headerCell.addEventListener("click", () => {
+                const headerIndex = Array.prototype.indexOf.call(headerCell.parentElement.children, headerCell);
+                const currentIsAsc = headerCell.classList.contains("sort-asc");
+                sortTable(table, headerIndex, !currentIsAsc);
+            });
+        }
+    });
+    </script>
+</body>
+</html>

@@ -77,7 +77,7 @@ def generate_local_accounts_report(app_instance: Any, helpers: Any, browser_pref
                         if ':' in line:
                             key, value = line.split(':', 1)
                             user_data[key.strip()] = value.strip()
-                if username.startswith('_'):
+                if username.startswith('_') or username in {'root', 'daemon', 'nobody'}:
                     system_users.append(user_data)
                 else:
                     standard_users.append(user_data)
@@ -88,11 +88,21 @@ def generate_local_accounts_report(app_instance: Any, helpers: Any, browser_pref
             admin_usernames = admin_members_output.split("GroupMembership:")[1].strip().split()
         
         html_body += "<h3>Standard & Administrator Accounts</h3>"
-        html_body += "<table><tr><th>Name</th><th>Real Name</th><th>Is Admin</th><th>UniqueID</th><th>Home Directory</th><th>Login Shell</th></tr>"
+        html_body += "<table><tr><th>Name</th><th>Real Name</th><th>Is Admin</th><th>UniqueID</th><th>Home Directory</th><th>Login Shell</th><th>Notes</th></tr>"
         for user in sorted(standard_users, key=lambda x: int(x.get('UniqueID', 9999))):
             name = user.get('Name', 'N/A')
+            uid = int(user.get('UniqueID', 9999))
             is_admin = "Yes" if name in admin_usernames else "No"
-            html_body += f"<tr><td>{name}</td><td>{user.get('RealName', 'N/A')}</td><td>{is_admin}</td><td>{user.get('UniqueID', 'N/A')}</td><td>{user.get('NFSHomeDirectory', 'N/A')}</td><td>{user.get('UserShell', 'N/A')}</td></tr>"
+            
+            notes = []
+            if is_admin == "Yes":
+                notes.append("<b>Admin</b>")
+            if uid < 500:
+                notes.append("Low UID (<500)")
+            
+            notes_str = ", ".join(notes) if notes else ""
+            
+            html_body += f"<tr><td>{name}</td><td>{user.get('RealName', 'N/A')}</td><td>{is_admin}</td><td>{user.get('UniqueID', 'N/A')}</td><td>{user.get('NFSHomeDirectory', 'N/A')}</td><td>{user.get('UserShell', 'N/A')}</td><td>{notes_str}</td></tr>"
         html_body += "</table>"
 
         html_body += "<h3>System Accounts</h3>"

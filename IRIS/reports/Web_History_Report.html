@@ -1,0 +1,98 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web History Report</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; background-color: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 0 15px rgba(0,0,0,0.1); }
+        h1, h2, h3 { color: #0056b3; border-bottom: 2px solid #0056b3; padding-bottom: 5px; }
+        h1 { font-size: 2em; } h2 { font-size: 1.5em; margin-top: 30px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #f2f2f2; font-weight: bold; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        pre { background-color: #eee; padding: 15px; border: 1px solid #ccc; border-radius: 5px; white-space: pre-wrap; word-wrap: break-word; font-family: "Courier New", Courier, monospace; }
+        .footer { text-align: center; margin-top: 30px; font-size: 0.9em; color: #777; }
+        .filter-container { margin-bottom: 15px; }
+        #tableFilter { padding: 8px; width: 300px; border: 1px solid #ddd; border-radius: 4px; }
+        th.sortable { cursor: pointer; position: relative; }
+        th.sortable:hover { background-color: #e8e8e8; }
+        th.sortable::after { content: ''; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 0.8em; opacity: 0.5; }
+        th.sort-asc::after { content: ' ▲'; opacity: 1; }
+        th.sort-desc::after { content: ' ▼'; opacity: 1; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Web History Report</h1>
+        <p><strong>Suspect Computer:</strong> s-it-wfh-s-spencer-imac2017</p>
+        <p><strong>Report Generated:</strong> 2025-07-29 23:29:20</p>
+        
+        <h2>Web History</h2><p>Web browsing history collection is not yet implemented. This would involve parsing browser-specific history databases (e.g., SQLite files for Chrome/Firefox).</p>
+        <div class="footer"><p>IRIS Incident Response Report</p></div>
+    </div>
+    <script>
+    function filterTable() {
+        const filter = document.getElementById("tableFilter").value.toUpperCase();
+        const tables = document.querySelectorAll("table");
+        tables.forEach(table => {
+            const rows = table.getElementsByTagName("tr");
+            for (let i = 1; i < rows.length; i++) { // Start at 1 to skip header row
+                const cells = rows[i].getElementsByTagName("td");
+                let found = false;
+                for (let j = 0; j < cells.length; j++) {
+                    if (cells[j] && cells[j].textContent.toUpperCase().indexOf(filter) > -1) {
+                        found = true;
+                        break;
+                    }
+                }
+                rows[i].style.display = found ? "" : "none";
+            }
+        });
+    }
+
+    function sortTable(table, column, asc = true) {
+        const dirModifier = asc ? 1 : -1;
+        const tBody = table.tBodies[0];
+        const rows = Array.from(tBody.querySelectorAll("tr"));
+
+        const sortedRows = rows.sort((a, b) => {
+            const aColText = a.querySelector(`td:nth-child(${column + 1})`).textContent.trim();
+            const bColText = b.querySelector(`td:nth-child(${column + 1})`).textContent.trim();
+            // Basic numeric comparison
+            const aNum = parseFloat(aColText);
+            const bNum = parseFloat(bColText);
+            if (!isNaN(aNum) && !isNaN(bNum)) {
+                return (aNum - bNum) * dirModifier;
+            }
+            return aColText.localeCompare(bColText) * dirModifier;
+        });
+
+        while (tBody.firstChild) {
+            tBody.removeChild(tBody.firstChild);
+        }
+        tBody.append(...sortedRows);
+
+        table.querySelectorAll("th").forEach(th => th.classList.remove("sort-asc", "sort-desc"));
+        table.querySelector(`th:nth-child(${column + 1})`).classList.toggle("sort-asc", asc);
+        table.querySelector(`th:nth-child(${column + 1})`).classList.toggle("sort-desc", !asc);
+    }
+
+    document.querySelectorAll("th").forEach(headerCell => {
+        // Only make headers of tables with a tbody sortable
+        const table = headerCell.closest("table");
+        if (table && table.tBodies[0] && table.tBodies[0].rows.length > 0) {
+            headerCell.classList.add("sortable");
+            headerCell.addEventListener("click", () => {
+                const headerIndex = Array.prototype.indexOf.call(headerCell.parentElement.children, headerCell);
+                const currentIsAsc = headerCell.classList.contains("sort-asc");
+                sortTable(table, headerIndex, !currentIsAsc);
+            });
+        }
+    });
+    </script>
+</body>
+</html>
