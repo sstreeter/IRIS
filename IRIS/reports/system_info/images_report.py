@@ -251,84 +251,69 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
     </div>
 
     <style>
-        :root {{ --primary: #007bff; --bg: #f8f9fa; --border: #dee2e6; --text: #333; --sidebar-w: 300px; }}
+        :root {{ --primary: #007bff; --bg: #f8f9fa; --border: #dee2e6; --text: #333; --sidebar-w: 320px; }}
         body {{ margin: 0; font-family: -apple-system, system-ui, sans-serif; background: #fff; color: var(--text); overflow: hidden; height: 100vh; }}
         
         .report-app {{ display: flex; height: 100vh; }}
         
         /* Sidebar */
-        .sidebar {{ width: var(--sidebar-w); background: #fff; border-right: 1px solid var(--border); display: flex; flex-direction: column; z-index: 200; box-shadow: 2px 0 5px rgba(0,0,0,0.05); transition: transform 0.3s; }}
+        .sidebar {{ width: var(--sidebar-w); background: #fff; border-right: 1px solid var(--border); display: flex; flex-direction: column; z-index: 200; box-shadow: 2px 0 5px rgba(0,0,0,0.05); transition: transform 0.3s; flex-shrink: 0; }}
         .sidebar.closed {{ transform: translateX(calc(-1 * var(--sidebar-w))); margin-right: calc(-1 * var(--sidebar-w)); }}
         .sidebar-header {{ padding: 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: #f1f1f1; }}
-        .sidebar-header h3 {{ margin: 0; font-size: 16px; }}
         .sidebar-content {{ flex: 1; overflow-y: auto; padding: 20px; }}
         .placeholder-text {{ color: #999; text-align: center; margin-top: 50px; font-style: italic; }}
         .sidebar-actions {{ padding: 15px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; background: #f9f9f9; }}
         .btn-action {{ display: block; text-align: center; padding: 10px; border-radius: 4px; text-decoration: none; border: 1px solid var(--border); background: #fff; color: #333; }}
         .btn-action.primary {{ background: var(--primary); color: #fff; border: none; }}
-        .btn-action:hover {{ opacity: 0.9; }}
-
+        
         /* Main Layout */
         .main-layout {{ flex: 1; display: flex; flex-direction: column; min-width: 0; }}
         
         /* Toolbar */
-        .sticky-toolbar {{ background: #fff; border-bottom: 1px solid var(--border); padding: 10px 20px; z-index: 100; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }}
-        .toolbar-row {{ display: flex; align-items: center; gap: 15px; margin-bottom: 8px; }}
-        .wrap-row {{ flex-wrap: wrap; }}
+        .sticky-toolbar {{ background: #fff; border-bottom: 1px solid var(--border); padding: 12px 20px; z-index: 100; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }}
+        .toolbar-row {{ display: flex; flex-wrap: wrap; align-items: center; gap: 15px; margin-bottom: 10px; }} /* Added wrap */
         .toolbar-row.secondary {{ margin-bottom: 0; font-size: 13px; color: #666; justify-content: space-between; }}
         
         /* Inputs */
-        .search-box {{ flex: 1; position: relative; min-width: 200px; }}
-        .search-box input {{ width: 100%; padding: 6px 10px 6px 30px; border: 1px solid #ccc; border-radius: 4px; }}
+        .search-box {{ flex: 1; position: relative; min-width: 250px; }}
+        .search-box input {{ width: 100%; padding: 8px 10px 8px 30px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }} /* box-sizing fix */
         .search-icon {{ position: absolute; left: 8px; top: 50%; transform: translateY(-50%); opacity: 0.5; }}
         
-        .filter-group {{ display: flex; align-items: center; gap: 5px; font-size: 13px; }}
-        .filter-group select {{ padding: 4px; border-radius: 4px; border: 1px solid #ccc; max-width: 150px; }}
-        .checkboxes label {{ margin-right: 10px; cursor: pointer; }}
-
+        .filter-group {{ display: flex; align-items: center; gap: 8px; font-size: 13px; white-space: nowrap; }}
+        .filter-group select {{ padding: 5px; border-radius: 4px; border: 1px solid #ccc; max-width: 150px; }}
+        
         /* View Toggles */
-        .view-toggles {{ display: flex; border: 1px solid #ccc; border-radius: 4px; overflow: hidden; }}
-        .btn-toggle {{ border: none; background: #f0f0f0; padding: 6px 12px; cursor: pointer; border-right: 1px solid #ccc; font-size: 13px; }}
+        .view-toggles {{ display: flex; border: 1px solid #ccc; border-radius: 4px; overflow: hidden; margin-left: auto; }} /* margin-left auto pushes to right */
+        .btn-toggle {{ border: none; background: #f0f0f0; padding: 8px 14px; cursor: pointer; border-right: 1px solid #ccc; font-size: 13px; }}
         .btn-toggle:last-child {{ border-right: none; }}
         .btn-toggle.active {{ background: var(--primary); color: #fff; }}
 
-        /* Pagination */
-        .pagination-controls {{ display: flex; align-items: center; gap: 10px; }}
-        .pagination-controls button {{ border: 1px solid #ccc; background: #fff; border-radius: 4px; padding: 2px 8px; cursor: pointer; }}
-        .pagination-controls button:disabled {{ opacity: 0.5; cursor: default; }}
-        
         /* Content Area */
         .content-area {{ flex: 1; overflow-y: auto; padding: 20px; background: #fafafa; }}
         
-        /* Grid View */
-        .view-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; align-content: start; }}
-        .card {{ background: #fff; border: 1px solid #eee; border-radius: 6px; overflow: hidden; transition: 0.2s; cursor: pointer; position: relative; }}
+        /* Grid View - Improved */
+        .view-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 20px; align-content: start; }}
+        .card {{ background: #fff; border: 1px solid #eee; border-radius: 8px; overflow: hidden; transition: 0.2s; cursor: pointer; display: flex; flex-direction: column; height: 100%; }}
+        .card:hover {{ transform: translateY(-3px); box-shadow: 0 8px 16px rgba(0,0,0,0.1); }}
         .card.selected {{ border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0,123,255,0.2); }}
-        .card:hover {{ transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.05); }}
-        .card-thumb {{ height: 100px; background: #eee; display: flex; align-items: center; justify-content: center; overflow: hidden; }}
-        .card-thumb img {{ width: 100%; height: 100%; object-fit: cover; }}
-        .card-body {{ padding: 8px; text-align: center; }}
-        .card-title {{ font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }}
-        .card-meta {{ font-size: 11px; color: #888; margin-top: 2px; }}
+        
+        .card-thumb {{ aspect-ratio: 16/10; background: #eee; display: flex; align-items: center; justify-content: center; overflow: hidden; width: 100%; }}
+        .card-thumb img {{ width: 100%; height: 100%; object-fit: cover; display: block; }}
+        .no-preview {{ font-weight: bold; color: #bbb; letter-spacing: 1px; }}
+        
+        .card-body {{ padding: 10px; text-align: center; flex: 1; display: flex; flex-direction: column; justify-content: center; }}
+        .card-title {{ font-size: 13px; font-weight: 500; color: #333; margin-bottom: 4px; word-break: break-word; line-height: 1.3; max-height: 2.6em; overflow: hidden; }}
+        .card-meta {{ font-size: 11px; color: #888; }}
 
         /* List/Compact Views */
-        .view-list, .view-compact {{ display: block; }}
-        .list-row {{ display: flex; align-items: center; padding: 8px; background: #fff; border-bottom: 1px solid #eee; cursor: pointer; }}
-        .list-row:hover {{ background: #f8f9fa; }}
-        .list-row.selected {{ background: #e8f0fe; }}
-        .list-icon {{ width: 40px; height: 40px; background: #eee; margin-right: 10px; display: flex; align-items: center; justify-content: center; border-radius: 4px; overflow: hidden; flex-shrink: 0; }}
-        .list-icon img {{ width: 100%; height: 100%; object-fit: cover; }}
-        
-        .compact-table {{ width: 100%; border-collapse: collapse; font-size: 12px; }}
-        .compact-table th {{ text-align: left; padding: 8px; background: #f1f1f1; position: sticky; top: 0; }}
-        .compact-table td {{ padding: 6px 8px; border-bottom: 1px solid #eee; cursor: pointer; }}
-        .compact-table tr:hover {{ background: #f8f9fa; }}
-        .compact-table tr.selected {{ background: #e8f0fe; }}
+        .view-list .list-row {{ padding: 12px; border-bottom: 1px solid #f0f0f0; }}
+        .list-icon {{ width: 48px; height: 48px; border-radius: 6px; margin-right: 15px; }}
     </style>
 
     <script>
     window.fileData = {json_data};
     
+    // Performance: Use a fragment for DOM updates
     const APP = {{
         data: [],
         filtered: [],
@@ -337,18 +322,22 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
         search: '',
         filters: {{ size:'all', type:'all', date:'all', disk:true, media:true }},
         page: 1,
-        pageSize: 100,
+        pageSize: 100, // Keep 100 for balance
         selectedId: null,
 
         init: function() {{
-            this.data = window.fileData.map((d, i) => ({{...d, id: i}})); // Add ID
+            // Defer heavy init if needed, but 10k items in memory is fine for modern JS engines
+            this.data = window.fileData.map((d, i) => ({{...d, id: i}}));
             this.populateTypes();
             this.applyFilters();
         }},
-
+        
+        // ... (Keep existing logic methods: populateTypes, updateFilter, updateSort, setView, applyFilters, sortData, nextPage, prevPage, selectItem, closeSidebar, renderSidebar)
+        
         populateTypes: function() {{
             const types = new Set(this.data.map(d => d.ext));
             const sel = document.getElementById('typeFilter');
+            sel.innerHTML = '<option value="all">All Types</option>'; // Clear first to allow re-runs if needed
             Array.from(types).sort().forEach(t => {{
                 const opt = document.createElement('option');
                 opt.value = t;
@@ -386,16 +375,11 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
         applyFilters: function() {{
             const now = new Date();
             this.filtered = this.data.filter(item => {{
-                // Category
                 if (item.category === 'disk_image' && !this.filters.disk) return false;
                 if (item.category === 'media_file' && !this.filters.media) return false;
-                
-                // Search
                 if (this.search && !item.name.toLowerCase().includes(this.search)) return false;
-                
-                // Type
                 if (this.filters.type !== 'all' && item.ext !== this.filters.type) return false;
-
+                
                 // Size
                 if (this.filters.size !== 'all') {{
                     const s = item.size;
@@ -462,12 +446,12 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
             
             const icon = this.getIcon(item);
             let thumbInfo = '';
-            if (icon.type === 'img') thumbInfo = `<img src="${{icon.src}}" style="max-width:100%; border-radius:4px; margin-bottom:15px;">`;
+            if (icon.type === 'img') thumbInfo = `<img src="${{icon.src}}" style="max-width:100%; border-radius:4px; margin-bottom:15px; box-shadow:0 2px 5px rgba(0,0,0,0.1);">`;
             else thumbInfo = `<div style="font-size:3em; color:#ccc; text-align:center; padding:20px;">${{icon.val}}</div>`;
 
             content.innerHTML = `
                 ${{thumbInfo}}
-                <div style="font-weight:bold; word-break:break-all;">${{item.name}}</div>
+                <div style="font-weight:bold; word-break:break-all; font-size:1.1em;">${{item.name}}</div>
                 <div style="font-size:0.9em; color:#666; margin:5px 0 15px;">${{item.formatted_size}} • ${{item.ext}}</div>
                 
                 <div style="font-size:0.85em; display:grid; grid-template-columns:auto 1fr; gap:5px 10px;">
@@ -478,18 +462,23 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
             `;
             
             document.getElementById('btnOpen').href = item.file_url;
-            document.getElementById('btnReveal').href = item.file_url; // Browse logic usually OS specific, linking file helps
+            document.getElementById('btnReveal').href = item.file_url; 
+        }},
+        
+        getIcon: function(item) {{
+             const ext = item.ext;
+             if (['.jpg','.jpeg','.png','.gif','.webp','.svg'].includes(ext)) return {{type:'img', src: item.file_url}};
+             return {{type:'text', val: ext ? ext.replace('.','').toUpperCase().substring(0,4) : 'FILE'}};
         }},
 
         render: function() {{
             const container = document.getElementById('contentArea');
+            // Use fragment for speed
             container.innerHTML = '';
             
-            // Pagination Slice
             const start = (this.page - 1) * this.pageSize;
             const pageData = this.filtered.slice(start, start + this.pageSize);
             
-            // Update Status Controls
             const maxPage = Math.ceil(this.filtered.length / this.pageSize) || 1;
             document.getElementById('pageInfo').textContent = `Page ${{this.page}} of ${{maxPage}}`;
             document.getElementById('statusBar').textContent = `Found ${{this.filtered.length}} items (Total: ${{this.data.length}})`;
@@ -503,7 +492,7 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
                     const sel = item.id === this.selectedId ? 'selected' : '';
                     const dup = item.dup_group ? 'style="background:#fff3cd"' : '';
                     html += `<tr class="${{sel}}" ${{dup}} onclick="app.selectItem(${{item.id}})">
-                        <td>${{item.name}}</td><td>${{item.formatted_size}}</td><td>${{item.formatted_date}}</td><td>${{item.path}}</td>
+                        <td>${{item.name}}</td><td>${{item.formatted_size}}</td><td>${{item.formatted_date}}</td><td title="${{item.path}}"><div style="max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${{item.path}}</div></td>
                     </tr>`;
                 }});
                 html += '</tbody></table>';
@@ -511,14 +500,14 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
                 pageData.forEach(item => {{
                     const sel = item.id === this.selectedId ? 'selected' : '';
                     const icon = this.getIcon(item);
-                    let thumb = (icon.type === 'img') ? `<img src="${{icon.src}}" loading="lazy">` : `<div class="no-preview" style="font-size:1.2em; color:#ccc;">${{icon.val}}</div>`;
+                    let thumb = (icon.type === 'img') ? `<img src="${{icon.src}}" loading="lazy">` : `<div class="no-preview">${{icon.val}}</div>`;
                     
                     if (this.view === 'grid') {{
                         html += `
                         <div class="card ${{sel}}" onclick="app.selectItem(${{item.id}})">
                             <div class="card-thumb">${{thumb}}</div>
                             <div class="card-body">
-                                <div class="card-title">${{item.name}}</div>
+                                <div class="card-title" title="${{item.name}}">${{item.name}}</div>
                                 <div class="card-meta">${{item.formatted_size}}</div>
                             </div>
                         </div>`;
@@ -527,21 +516,15 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
                         <div class="list-row ${{sel}}" onclick="app.selectItem(${{item.id}})">
                             <div class="list-icon">${{thumb}}</div>
                             <div style="flex:1; min-width:0;">
-                                <div style="font-weight:500;">${{item.name}}</div>
-                                <div style="font-size:11px; color:#888;">${{item.path}}</div>
+                                <div style="font-weight:500; margin-bottom:2px;">${{item.name}}</div>
+                                <div style="font-size:11px; color:#888; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${{item.path}}</div>
                             </div>
-                            <div style="flex-shrink:0; width:120px; text-align:right; font-size:12px;">${{item.formatted_size}}</div>
+                            <div style="flex-shrink:0; width:100px; text-align:right; font-size:12px; color:#666;">${{item.formatted_size}}</div>
                         </div>`;
                     }}
                 }});
             }}
             container.innerHTML = html;
-        }},
-        
-        getIcon: function(item) {{
-             const ext = item.ext;
-             if (['.jpg','.jpeg','.png','.gif','.webp','.svg'].includes(ext)) return {{type:'img', src: item.file_url}};
-             return {{type:'text', val: ext.replace('.','').toUpperCase().substring(0,4)}};
         }}
     }};
     

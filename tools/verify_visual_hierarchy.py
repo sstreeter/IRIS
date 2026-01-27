@@ -1,3 +1,6 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import plistlib
 import json
 from IRIS.reports.system_info.system_hardware_info import generate_system_hardware_report

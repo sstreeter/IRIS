@@ -1,3 +1,6 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from IRIS.reports.network.network_config_report import generate_network_config_report
 from IRIS.helpers import MockAppInstance, Helpers
 import os

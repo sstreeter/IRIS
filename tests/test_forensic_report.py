@@ -1,3 +1,6 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from IRIS.reports.user_security.console_log_report import generate_console_log_report
 from IRIS.helpers import Helpers, MockAppInstance
 

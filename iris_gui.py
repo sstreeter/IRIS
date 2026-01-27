@@ -33,13 +33,20 @@ from IRIS.reports.persistence_malware import (
     script_check_report, process_persistence_report
 )
 
+from IRIS.reports.network.network_manager import NetworkManagerDialog
+
 class IRISGUI(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("IRIS Incident Response Console")
-        self.geometry("1280x720")
-        self.resizable(False, False)
+        self.geometry("1400x900")
+        self.resizable(True, True)
         self.suspect_hostname = socket.gethostname()
+
+        # UI Styling: Scaled up for better visibility
+        self.main_font = ("Arial", 12)
+        self.header_font = ("Arial", 12, "bold")
+        self.console_font = ("Courier", 11)
 
         self.app_instance = MockAppInstance()
         #self.helpers = Helpers(use_mock=True)
@@ -49,40 +56,59 @@ class IRISGUI(tk.Tk):
         self._build_ui()
 
     def _build_ui(self):
+        # Apply global font scaling
+        self.option_add("*Font", self.main_font)
+        
+        # 1. Top Bar (Pack Top)
         self._build_top_bar()
-        self._build_left_panel()
-        self._build_right_panel()
+        
+        # 2. Bottom Tools (Pack Bottom)
         self._build_bottom_tools()
+        
+        # 3. Main Content Area (Pack remaining space)
+        self.main_container = tk.Frame(self)
+        self.main_container.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        # Grid Configuration for Main Content
+        self.main_container.columnconfigure(0, weight=0, minsize=240) # Left Panel
+        self.main_container.columnconfigure(1, weight=1)              # Console (Flexible)
+        self.main_container.columnconfigure(2, weight=0, minsize=240) # Right Panel
+        self.main_container.rowconfigure(0, weight=1)
+
+        # 4. Panels (Grid inside Main Content)
+        self._build_left_panel()
         self._build_console()
+        self._build_right_panel()
 
     def _build_top_bar(self):
         top = tk.Frame(self, bd=2, relief=tk.GROOVE)
         top.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 
-        tk.Label(top, text="Browse for Logs:", font=("Arial", 10)).pack(side=tk.LEFT, padx=(5,5))
+        tk.Label(top, text="Browse for Logs:", font=self.header_font).pack(side=tk.LEFT, padx=(5,5))
         self.browser_var = tk.StringVar(value="System Default")
         ttk.Combobox(top, textvariable=self.browser_var,
                      values=["System Default","Chrome","Firefox","Safari","Edge","Brave"],
-                     width=12, state="readonly").pack(side=tk.LEFT)
+                     width=15, state="readonly", font=self.main_font).pack(side=tk.LEFT)
 
-        tk.Label(top, text="Time Range:", font=("Arial", 10)).pack(side=tk.LEFT, padx=(10,5))
+        tk.Label(top, text="Time Range:", font=self.header_font).pack(side=tk.LEFT, padx=(15,5))
         self.time_range_var = tk.StringVar(value="All Time")
         tr_cb = ttk.Combobox(top, textvariable=self.time_range_var,
                      values=["Last Hour", "Last 24 Hours", "Last 7 Days", "All Time", "Custom Range"],
-                     width=14, state="readonly")
+                     width=16, state="readonly", font=self.main_font)
         tr_cb.pack(side=tk.LEFT)
         tr_cb.bind("<<ComboboxSelected>>", self.on_time_range_change)
 
-        tk.Label(top, text="Suspect:", font=("Arial", 10)).pack(side=tk.LEFT, padx=(10,5))
+        tk.Label(top, text="Suspect Computer:", font=self.header_font).pack(side=tk.LEFT, padx=(15,5))
         self.suspect_var = tk.StringVar(value=self.suspect_hostname)
-        tk.Entry(top, textvariable=self.suspect_var, width=20).pack(side=tk.LEFT)
-        tk.Button(top, text="Set", command=self.set_suspect_computer).pack(side=tk.LEFT, padx=5)
+        tk.Entry(top, textvariable=self.suspect_var, width=40, font=self.main_font).pack(side=tk.LEFT)
+        tk.Button(top, text="Set Hostname", command=self.set_suspect_computer).pack(side=tk.LEFT, padx=5)
 
+    # ... (Time Range Logic Unchanged) ...
     def on_time_range_change(self, event=None):
         selection = self.time_range_var.get()
         now = datetime.now()
         start = None
-        end = None # passing None often implies "Now" for end
+        end = None 
         
         if selection == "Last Hour":
             start = now - timedelta(hours=1)
@@ -94,7 +120,6 @@ class IRISGUI(tk.Tk):
             start = None
             end = None
         elif selection == "Custom Range":
-            # Prompt for Start
             s_str = simpledialog.askstring("Custom Start", "Start Time (YYYY-MM-DD HH:MM):", parent=self)
             if s_str:
                 try:
@@ -103,8 +128,6 @@ class IRISGUI(tk.Tk):
                     self.log("❌ Invalid Start Date Format. Using 'All Time'.")
                     self.time_range_var.set("All Time")
                     return
-                
-                # Prompt for End
                 e_str = simpledialog.askstring("Custom End", "End Time (YYYY-MM-DD HH:MM) [Leave empty for Now]:", parent=self)
                 if e_str:
                     try:
@@ -116,21 +139,18 @@ class IRISGUI(tk.Tk):
                 self.time_range_var.set("All Time")
                 return
 
-        # Update App Instance
         self.app_instance.time_range = {"start": start, "end": end}
-        
-        # Log feedback
         range_desc = "All Time"
         if start:
             s_fmt = start.strftime("%Y-%m-%d %H:%M")
             e_fmt = end.strftime("%Y-%m-%d %H:%M") if end else "Now"
             range_desc = f"{s_fmt} to {e_fmt}"
-        
         self.log(f"⏰ Time Range Set: {selection} ({range_desc})")
 
     def _build_left_panel(self):
-        left = tk.LabelFrame(self, text="Diagnostic Reports", padx=5, pady=5)
-        left.place(x=10, y=70, width=200, height=580)
+        # GRID: Left Column (0)
+        left = tk.LabelFrame(self.main_container, text="Diagnostic Reports", padx=5, pady=5, font=self.header_font)
+        left.grid(row=0, column=0, sticky="nsew", padx=(0,5)) # sticky nsew ensures it stretches height
 
         self.report_map = [
             ("Run All Reports", self.run_all_reports),
@@ -154,11 +174,21 @@ class IRISGUI(tk.Tk):
         ]
 
         for label, cmd in self.report_map:
-            tk.Button(left, text=label, width=24, anchor="w", command=cmd).pack(pady=2)
+            tk.Button(left, text=label, anchor="w", command=cmd, font=self.main_font).pack(pady=1, fill=tk.X)
+
+    def _build_console(self):
+        # GRID: Middle Column (1)
+        console_frame = tk.LabelFrame(self.main_container, text="Console Output", padx=5, pady=5, font=self.header_font)
+        console_frame.grid(row=0, column=1, sticky="nsew", padx=5)
+
+        self.console = scrolledtext.ScrolledText(console_frame, wrap=tk.WORD, font=self.console_font)
+        self.console.pack(fill=tk.BOTH, expand=True)
+        self.log(f"Using auto‑detected/default Suspect Computer: {self.suspect_hostname}")
 
     def _build_right_panel(self):
-        right = tk.LabelFrame(self, text="Browser & Host Actions", padx=5, pady=5)
-        right.place(x=1070, y=70, width=200, height=580)
+        # GRID: Right Column (2)
+        right = tk.LabelFrame(self.main_container, text="Browser & Host Actions", padx=5, pady=5, font=self.header_font)
+        right.grid(row=0, column=2, sticky="nsew", padx=(5,0))
 
         actions = [
             "Chrome Extension", "User Downloads", "Browser Artifacts",
@@ -166,7 +196,6 @@ class IRISGUI(tk.Tk):
             "Scan URL", "Lookup Host", "Check IP Reputation"
         ]
 
-        # Action command map
         self.host_action_map = {
             "Ping": self.run_ping_report,
             "User Downloads": self.run_user_activity_report,
@@ -178,48 +207,47 @@ class IRISGUI(tk.Tk):
 
         for label in actions:
             cmd = self.host_action_map.get(label, lambda l=label: self.log(f"⚠️ Host action '{l}' not implemented yet."))
-            tk.Button(right, text=label, width=24, anchor="w", command=cmd).pack(pady=2)
+            tk.Button(right, text=label, anchor="w", command=cmd, font=self.main_font).pack(pady=1, fill=tk.X)
 
     def _build_bottom_tools(self):
-        bottom_frame = tk.LabelFrame(self, text="Investigation Tools & Other", padx=5, pady=5)
-        bottom_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=5)
+        # PACK: Bottom (Must be packed BEFORE main_container to reserve space if packing Top -> Bottom)
+        # Actually in Tkinter, if side=BOTTOM is packed second (after Top), it sticks to bottom.
+        # Then main_container packs into remaining space.
+        
+        bottom_frame = tk.LabelFrame(self, text="Investigation & System Tools", padx=10, pady=10, font=self.header_font)
+        bottom_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=10)
 
-        row1 = tk.Frame(bottom_frame)
-        row1.pack(side=tk.TOP, fill=tk.X, pady=2)
-        row2 = tk.Frame(bottom_frame)
-        row2.pack(side=tk.TOP, fill=tk.X, pady=2)
+        bottom_frame.columnconfigure(0, weight=1)
+        bottom_frame.columnconfigure(1, weight=1)
+        bottom_frame.columnconfigure(2, weight=1)
 
-        tools_row1 = ["MAC Vendor", "URL Check", "WHOIS", "Console Report", "Images"]
-        tools_row2 = ["DB Browser for SQLite Download", "SQL Query", "Printable Result"]
+        # Group 1: Investigation
+        f_inv = tk.LabelFrame(bottom_frame, text="🕵️ Investigation", padx=5, pady=5, font=self.header_font)
+        f_inv.grid(row=0, column=0, sticky="nsew", padx=5)
+        
+        tk.Button(f_inv, text="MAC Vendor", command=self.run_network_config_report, font=self.main_font).pack(fill=tk.X, pady=2)
+        tk.Button(f_inv, text="WHOIS Lookup", command=self.run_whois_report, font=self.main_font).pack(fill=tk.X, pady=2)
+        tk.Button(f_inv, text="URL Reputation", command=lambda: self.open_browser_tool("https://urlscan.io/"), font=self.main_font).pack(fill=tk.X, pady=2)
 
-        # Tool command map
-        self.tool_map = {
-            "MAC Vendor": self.run_network_config_report,
-            "WHOIS": self.run_whois_report,
-            "Ping": self.run_ping_report,
-            "Console Report": self.run_console_log_report,
-            "Images": self.run_images_report,
-            "URL Check": lambda: self.open_browser_tool("https://urlscan.io/"),
-            "DB Browser for SQLite Download": lambda: self.open_browser_tool("https://sqlitebrowser.org/dl/")
-        }
+        # Group 2: Database / Advanced
+        f_db = tk.LabelFrame(bottom_frame, text="🗄️ Data & Console", padx=5, pady=5, font=self.header_font)
+        f_db.grid(row=0, column=1, sticky="nsew", padx=5)
+        
+        tk.Button(f_db, text="Console Logs", command=self.run_console_log_report, font=self.main_font).pack(fill=tk.X, pady=2)
+        tk.Button(f_db, text="Disk Images", command=self.run_images_report, font=self.main_font).pack(fill=tk.X, pady=2)
+        tk.Button(f_db, text="SQLite Tools", command=lambda: self.open_browser_tool("https://sqlitebrowser.org/"), font=self.main_font).pack(fill=tk.X, pady=2)
 
-        for label in tools_row1:
-            cmd = self.tool_map.get(label, lambda l=label: self.log(f"⚠️ Tool '{l}' not implemented yet."))
-            tk.Button(row1, text=label, width=18, command=cmd).pack(side=tk.LEFT, padx=5)
+        # Group 3: System Actions
+        f_sys = tk.LabelFrame(bottom_frame, text="⚡ System Actions", padx=5, pady=5, font=self.header_font)
+        f_sys.grid(row=0, column=2, sticky="nsew", padx=5)
 
-        for label in tools_row2:
-            cmd = self.tool_map.get(label, lambda l=label: self.log(f"⚠️ Tool '{l}' not implemented yet."))
-            tk.Button(row2, text=label, width=28, command=cmd).pack(side=tk.LEFT, padx=5)
-
-        tk.Button(bottom_frame, text="v3.2", width=8, command=self.show_version_info).place(relx=1.0, rely=1.0, x=-5, y=-5, anchor="se")
-
-    def _build_console(self):
-        console_frame = tk.LabelFrame(self, text="Console Output", padx=5, pady=5)
-        console_frame.place(x=220, y=70, width=840, height=580)
-
-        self.console = scrolledtext.ScrolledText(console_frame, wrap=tk.WORD, font=("Courier", 10))
-        self.console.pack(fill=tk.BOTH, expand=True)
-        self.log(f"Using auto‑detected/default Suspect Computer: {self.suspect_hostname}")
+        self.btn_net = tk.Button(f_sys, text="Network Manager (Kill Switch)", bg="#ffcccc", command=self.open_network_manager, font=self.main_font)
+        self.btn_net.pack(fill=tk.X, pady=2)
+        
+        tk.Button(f_sys, text="Flush DNS", command=self.flush_dns, font=self.main_font).pack(fill=tk.X, pady=2)
+        
+        # Version
+        tk.Label(bottom_frame, text="v3.6", fg="#999").grid(row=1, column=2, sticky="e")
 
     def log(self, msg):
         self.console.insert(tk.END, msg + "\n")
@@ -333,7 +361,7 @@ class IRISGUI(tk.Tk):
         webbrowser.open(url)
 
     def show_version_info(self):
-        messagebox.showinfo("Version Info", "IRIS Incident Response Toolkit\nVersion: v3.2\n\nBuilt for rapid forensic triage.\n– SHIFTY")
+        messagebox.showinfo("Version Info", "IRIS Incident Response Toolkit\nVersion: v3.5\n\nBuilt for rapid forensic triage.\n– SHIFTY")
 
 if __name__ == "__main__":
     IRISGUI().mainloop()

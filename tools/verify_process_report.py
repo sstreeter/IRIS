@@ -1,3 +1,6 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from IRIS.reports.process_software.running_processes_report import generate_running_processes_report, classify_process, parse_ps_aux
 from IRIS.helpers import MockAppInstance, Helpers
 import os

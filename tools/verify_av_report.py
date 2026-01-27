@@ -1,3 +1,6 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from IRIS.reports.user_security.antivirus_status_report import generate_antivirus_status_report
 from IRIS.helpers import MockAppInstance, Helpers
 import os
