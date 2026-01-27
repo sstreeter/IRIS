@@ -1,0 +1,31 @@
+{
+	"folders": [
+		{
+			"path": "../../../Projects/python/flask"
+		},
+		{
+			"path": "../../../Projects/python/etp"
+		},
+		{
+			"path": "../../../Desktop/ETP"
+		},
+		{
+			"path": "../../../Desktop/iPhoneBackup"
+		},
+		{
+			"path": "../../../Desktop/RFC"
+		},
+		{
+			"path": "../LCR"
+		},
+		{
+			"path": "."
+		},
+		{
+			"path": "../IRISX_app"
+		}
+	],
+	"settings": {
+		"git.ignoreLimitWarning": true
+	}
+}

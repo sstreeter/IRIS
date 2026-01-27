@@ -42,6 +42,7 @@ class MockAppInstance:
     def __init__(self):
         self.suspect_computer_name = "Test_Computer"
         self.report_output_directory = "reports"
+        self.time_range: Dict[str, Optional[datetime.datetime]] = {"start": None, "end": None}
         os.makedirs(self.report_output_directory, exist_ok=True)
     def log_output(self, *args):
         print(*args)
@@ -50,7 +51,7 @@ class MockAppInstance:
 
 # --- Helpers class with mock/live switch ---
 class Helpers:
-    def __init__(self, use_mock: bool = True):
+    def __init__(self, use_mock: bool = False):
         self.use_mock = use_mock
         self.os_type = self.get_os_type()
 
@@ -115,11 +116,124 @@ class Helpers:
     def run_cmd(self, command: str, check_shell: bool = False, app_instance: Optional[MockAppInstance] = None) -> str:
         return self.run_command(command, check_shell, app_instance)
 
+    def run_sudo_command(self, command: str, prompt_text: str = "IRIS needs administrative privileges to run this check.", app_instance: Optional[MockAppInstance] = None) -> str:
+        """
+        Executes a command with sudo privileges.
+        If sudo session is not active, prompts the user via GUI (on macOS) for password.
+        """
+        if self.use_mock:
+            self.log_output(app_instance, f"[MOCK] Running SUDO command: {command}")
+            return self.mock_run_command(command)
+        
+        # 1. Check if we already have sudo access or if it's not needed (e.g. root user)
+        # `sudo -n true` returns 0 if we have cached credentials, 1 otherwise.
+        check = subprocess.run(["sudo", "-n", "true"], capture_output=True)
+        if check.returncode == 0:
+            # We have credentials, just run it
+            full_cmd = f"sudo {command}"
+            return self.run_command(full_cmd, check_shell=True, app_instance=app_instance)
+
+        # 2. We need credentials. Use GUI prompt on macOS.
+        if self.os_type == "darwin":
+            # Use 'do shell script ... with administrator privileges'
+            # This is the "Apple Way" and natively handles:
+            # - Password only (for admin users)
+            # - Username and Password (for standard users)
+            # - TouchID (if enabled)
+            
+            self.log_output(app_instance, "Requesting elevation via native macOS dialog...")
+            
+            # Escape the command for AppleScript
+            # We use absolute paths where possible or assume system path
+            escaped_command = command.replace('\\', '\\\\').replace('"', '\\"')
+            applescript = f'do shell script "{escaped_command}" with administrator privileges'
+            
+            try:
+                # Run the command via osascript
+                proc = subprocess.run(["osascript", "-e", applescript], capture_output=True, text=True, check=True)
+                return proc.stdout
+            except subprocess.CalledProcessError as e:
+                if "User canceled" in e.stderr:
+                    self.log_output(app_instance, "Authentication cancelled by user.")
+                else:
+                    self.log_output(app_instance, f"Elevation failed: {e.stderr.strip()}")
+                return ""
+            except Exception as e:
+                self.log_output(app_instance, f"Unexpected error during native elevation: {e}")
+                return ""
+        
+        else:
+            # Linux/Windows fallback (standard sudo behavior or just fail if not interactive)
+            # For now, just try running it and hope user runs script as root or has NOPASSWD
+            self.log_output(app_instance, "Non-macOS: Attempting sudo without GUI prompt (requires non-interactive sudo or running as root).")
+            return self.run_command(f"sudo {command}", check_shell=True, app_instance=app_instance)
+
     # ... rest of your code unchanged ...
 
     # (mock_run_command, read_plist_file, generate_report_html, etc.)
 
 
+    # --- NEW: Dynamic Input with Timeout ---
+    def ask_user_input(self, prompt: str, default_answer: str = "", timeout: int = 15, app_instance: Optional[MockAppInstance] = None) -> str:
+        """
+        Prompts the user for input via a GUI dialog with a timeout.
+        Returns the user's input or the default_answer if the dialog times out.
+        """
+        if self.use_mock:
+            self.log_output(app_instance, f"[MOCK] GUI Prompt: '{prompt}' (Default: {default_answer}, Timeout: {timeout}s)")
+            # In mock mode, we assume timeout/default behavior unless configured otherwise for testing
+            return default_answer
+            
+        if self.os_type == "darwin":
+            # AppleScript to prompt with timeout
+            # result format: {text returned:"...", button returned:"OK", gave up:false}
+            # If timed out: {gave up:true}
+            escaped_prompt = prompt.replace('"', '\\"')
+            escaped_default = default_answer.replace('"', '\\"')
+            
+            applescript = f'''
+            try
+                display dialog "{escaped_prompt}" default answer "{escaped_default}" with title "Input Required" giving up after {timeout}
+                return {{text returned, gave up}} of result
+            on error
+                return "Cancelled"
+            end try
+            '''
+            
+            try:
+                proc = subprocess.run(["osascript", "-e", applescript], capture_output=True, text=True, check=False)
+                output = proc.stdout.strip()
+                
+                if "Cancelled" in output:
+                     self.log_output(app_instance, "User cancelled input dialog.")
+                     return default_answer # Fallback to default on cancel often safer or empty? Let's use default.
+                
+                # Output format is usually: text, boolean (gave up)
+                # e.g., "50, false" or ", true" (if gave up and no text? actually if gave up text returned might be empty or partial)
+                # Let's rely on the comma separator AppleScript usually outputs for lists
+                
+                if ", true" in output or output.endswith(", true"):
+                    self.log_output(app_instance, f"Input dialog timed out after {timeout}s. Using default.")
+                    return default_answer
+                    
+                # Extract text
+                # If output is "50, false"
+                if ", false" in output:
+                    user_input = output.split(", false")[0].strip()
+                    return user_input if user_input else default_answer
+                    
+                # Fallback if parsing fails
+                return default_answer
+                
+            except Exception as e:
+                self.log_output(app_instance, f"Error displaying input dialog: {e}")
+                return default_answer
+        else:
+            # Linux/Windows: No GUI implemented yet, return default
+            self.log_output(app_instance, f"Non-macOS: Skipping GUI prompt. Using default: {default_answer}")
+            return default_answer
+
+    # --- MOCK DATA FOR USER & SECURITY REPORTS ---
     def mock_run_command(self, command: str) -> str:
         # --- MOCK DATA FOR USER & SECURITY REPORTS ---
         if isinstance(command, list):

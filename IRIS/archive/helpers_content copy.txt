@@ -1,0 +1,120 @@
+import subprocess
+import os
+import sys
+import webbrowser
+import datetime
+import tkinter as tk
+import plistlib
+
+
+def log_output(app_instance, message):
+    if app_instance and hasattr(app_instance, 'log_queue') and app_instance.log_queue:
+        app_instance.log_queue.put(message)
+    else:
+        print(message)
+
+def run_command(command, check_shell=False, app_instance=None):
+    try:
+        env = os.environ.copy()
+        env["PATH"] = "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:" + env.get("PATH", "")
+        
+        actual_shell_param = check_shell
+        if isinstance(command, str) and command.strip().startswith("sudo"): 
+            actual_shell_param = True 
+
+        if sys.platform == "win32" and actual_shell_param:
+            process = subprocess.run(["powershell.exe", "-Command", command], capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW, check=True, env=env, timeout=180)
+        elif sys.platform != "win32" and isinstance(command, list):
+            process = subprocess.run(command, capture_output=True, text=True, check=True, shell=False, env=env, timeout=180)
+        else:
+            process = subprocess.run(command, capture_output=True, text=True, check=True, shell=actual_shell_param, env=env, timeout=180) 
+        return process.stdout
+    except subprocess.CalledProcessError as e:
+        log_output(app_instance, f"Error executing command: {e}\n{e.stderr}")
+        return None
+    except subprocess.TimeoutExpired:
+        log_output(app_instance, f"Error: Command '{command}' timed out after 180 seconds. It might be waiting for input or taking too long.")
+        return None
+    except FileNotFoundError:
+        if isinstance(command, list):
+            cmd_name = command[0]
+        else:
+            cmd_name = command.split(' ')[0]
+        log_output(app_instance, f"Command '{cmd_name}' not found. Please ensure it's in your system's PATH or that its path is explicitly provided.")
+        return None 
+    except Exception as e:
+        log_output(app_instance, f"An unexpected error occurred while running command: {e}")
+        return None
+
+def get_report_folder_path(suspect_computer_name, report_name):
+    desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
+    report_folder = os.path.join(desktop_path, f"{suspect_computer_name} IRIS REPORTS")
+    os.makedirs(report_folder, exist_ok=True)
+    return os.path.join(report_folder, report_name)
+
+def generate_report_html(app_instance, suspect_computer_name, report_filename, title, html_body, open_in_browser=True, browser_preference="System Default"):
+    report_path = get_report_folder_path(suspect_computer_name, report_filename)
+    current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    html_content = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{title} - {suspect_computer_name}</title> 
+    <style>
+        body {{ font-family: Arial, sans-serif; margin: 20px; }} 
+        h1 {{ color: #333; }} 
+        h2 {{ color: #0066cc; }} 
+        table {{ border-collapse: collapse; width: 100%; margin-top: 20px; margin-bottom: 20px;}} 
+        th, td {{ border: 1px solid #dddddd; text-align: left; padding: 8px; }} 
+        th {{ background-color: #f2f2f2; }} 
+        .disallowed-rule {{ color: red; }} 
+        .active {{ color: #009900; }}
+        .inactive {{ color: #FF0000; }} 
+        pre {{ background-color: #f9f9f9; padding: 10px; border: 1px solid #ddd; white-space: pre-wrap; word-break: break-all; }}
+    </style>
+</head>
+<body>
+    <h1>{title} - {suspect_computer_name}</h1>
+    <p>Report generated on: {current_time}</p>
+    {html_body}
+</body>
+</html>
+"""
+    
+    try:
+        with open(report_path, "w", encoding='utf-8') as f: # Ensure encoding for consistency
+            f.write(html_content)
+        log_output(app_instance, f"Report generated and saved to: {report_path}")
+
+        if open_in_browser:
+            try:
+                if browser_preference == "System Default":
+                    webbrowser.open_new_tab(f"file:///{os.path.abspath(report_path)}")
+                else:
+                    controller = webbrowser.get(browser_preference)
+                    controller.open_new_tab(f"file:///{os.path.abspath(report_path)}")
+                log_output(app_instance, f"Opening report in browser: {report_path} using {browser_preference}.")
+            except webbrowser.Error as wb_err:
+                log_output(app_instance, f"ERROR: Failed to open report in browser (webbrowser.Error): {wb_err}")
+                log_output(app_instance, f"HINT: Ensure '{browser_preference}' is installed and configured in your system's PATH for external applications.")
+            except Exception as e: 
+                log_output(app_instance, f"ERROR: An unexpected error occurred while trying to open report in browser: {e}")
+    except Exception as e:
+        log_output(app_instance, f"Error generating or opening report {report_filename}: {e}")
+
+def read_plist_file(filepath, app_instance=None):
+    """Reads and parses a .plist file, returning its content as a dictionary."""
+    try:
+        with open(filepath, 'rb') as f:
+            plist_data = plistlib.load(f) 
+        return plist_data
+    except FileNotFoundError:
+        log_output(app_instance, f"Plist file not found: {filepath}")
+        return None
+    except plistlib.InvalidFileException:
+        log_output(app_instance, f"Invalid Plist file format: {filepath}")
+        return None
+    except Exception as e:
+        log_output(app_instance, f"Error reading Plist file {filepath}: {e}")
+        return None

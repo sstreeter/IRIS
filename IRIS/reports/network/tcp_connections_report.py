@@ -165,7 +165,7 @@ def generate_tcp_connections_report(app_instance: Any, helpers: Any, browser_pre
     
     if connections:
         html_body += "<table>"
-        html_body += "<thead><tr><th>Proto</th><th>State</th><th>Local Address</th><th>Remote Address</th><th>Process</th><th>PID</th></tr></thead>"
+        html_body += "<thead><tr><th>Proto</th><th>State</th><th>Local Address</th><th>Remote Address</th><th>Actions</th><th>Process</th><th>PID</th></tr></thead>"
         html_body += "<tbody>"
         
         # Sort by State (LISTEN first), then PID
@@ -178,11 +178,20 @@ def generate_tcp_connections_report(app_instance: Any, helpers: Any, browser_pre
             return (state_rank, p)
             
         for conn in sorted(connections, key=sort_key):
+             # Investigation link
+             remote_addr = conn['remote']
+             actions = ""
+             if remote_addr and remote_addr != "N/A" and "*:" not in remote_addr:
+                 ip = remote_addr.split(':')[0]
+                 if ip and not any(x in ip for x in ["127.0.0.1", "0.0.0.0", "::", "localhost"]):
+                     actions = f"<a href='https://www.virustotal.com/gui/ip-address/{ip}' target='_blank' title='Check on VirusTotal'>🔍 VT</a>"
+
              html_body += f"<tr>"
              html_body += f"<td>{conn['protocol']}</td>"
              html_body += f"<td>{conn['state']}</td>"
              html_body += f"<td>{conn['local']}</td>"
              html_body += f"<td>{conn['remote']}</td>"
+             html_body += f"<td>{actions}</td>"
              html_body += f"<td>{conn['process']}</td>"
              html_body += f"<td>{conn['pid']}</td>"
              html_body += f"</tr>"

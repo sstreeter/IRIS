@@ -30,17 +30,21 @@ from IRIS.helpers import MockAppInstance, Helpers
 # Group 1: Core System & Hardware
 from IRIS.reports.system_info.system_hardware_info import generate_system_hardware_report
 from IRIS.reports.system_info.usb_camera_bluetooth_report import generate_usb_camera_bluetooth_report
+from IRIS.reports.system_info.images_report import generate_images_report
 
 # Group 2: User & Security
 from IRIS.reports.user_security.local_accounts_report import generate_local_accounts_report
 from IRIS.reports.user_security.logon_report import generate_logon_report
 from IRIS.reports.user_security.antivirus_status_report import generate_antivirus_status_report
 from IRIS.reports.user_security.web_history_report import generate_web_history_report
+from IRIS.reports.user_security.console_log_report import generate_console_log_report
 
 # Group 3: Network & Connectivity
 from IRIS.reports.network.tcp_connections_report import generate_tcp_connections_report
 from IRIS.reports.network.network_config_report import generate_network_config_report
 from IRIS.reports.network.firewall_rules_report import generate_firewall_rules_report
+from IRIS.reports.network.ping_util_report import generate_ping_report
+from IRIS.reports.network.whois_report import generate_whois_report
 
 # Group 4: Running State & Software
 from IRIS.reports.process_software.running_processes_report import generate_running_processes_report
@@ -63,17 +67,21 @@ def run_all_diagnostics():
     # Group 1: Core System & Hardware
     generate_system_hardware_report(app_instance, helpers)
     generate_usb_camera_bluetooth_report(app_instance, helpers)
+    generate_images_report(app_instance, helpers)
 
     # Group 2: User & Security
     generate_local_accounts_report(app_instance, helpers)
     generate_logon_report(app_instance, helpers)
     generate_antivirus_status_report(app_instance, helpers)
     generate_web_history_report(app_instance, helpers)
+    generate_console_log_report(app_instance, helpers)
 
     # Group 3: Network & Connectivity
     generate_tcp_connections_report(app_instance, helpers)
     generate_network_config_report(app_instance, helpers)
     generate_firewall_rules_report(app_instance, helpers)
+    generate_ping_report(app_instance, helpers)
+    generate_whois_report(app_instance, helpers)
 
     # Group 4: Running State & Software
     generate_running_processes_report(app_instance, helpers)

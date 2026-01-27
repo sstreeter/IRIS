@@ -27,15 +27,10 @@ Thumbs.db
 *.key
 *.pem
 
-# Directory specific
-archive/
-reports/
-IRIS/*.html
-# Ignore the top-level reports directory inside IRISX
+# Generated Reports
+*.html
 reports/
 
-# Do NOT ignore the reports directory inside IRISX/IRIS
+# Keep the source code directory for reports, but ignore artifacts
 !IRIS/reports/
-
-# Ignore only .html files in IRISX/IRIS/reports
-/IRISX/IRIS/reports/*.html
+IRIS/reports/__pycache__/

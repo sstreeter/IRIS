@@ -1,0 +1,875 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<array>
+	<dict>
+		<key>_SPCommandLineArguments</key>
+		<array>
+			<string>/usr/sbin/system_profiler</string>
+			<string>-nospawn</string>
+			<string>-xml</string>
+			<string>SPUSBDataType</string>
+			<string>-detailLevel</string>
+			<string>full</string>
+		</array>
+		<key>_SPCompletionInterval</key>
+		<real>0.35364103317260742</real>
+		<key>_SPResponseTime</key>
+		<real>0.44824302196502686</real>
+		<key>_dataType</key>
+		<string>SPUSBDataType</string>
+		<key>_detailLevel</key>
+		<integer>-1</integer>
+		<key>_items</key>
+		<array>
+			<dict>
+				<key>_items</key>
+				<array>
+					<dict>
+						<key>_items</key>
+						<array>
+							<dict>
+								<key>_items</key>
+								<array>
+									<dict>
+										<key>Media</key>
+										<array>
+											<dict>
+												<key>Logical Unit</key>
+												<integer>0</integer>
+												<key>USB Interface</key>
+												<integer>0</integer>
+												<key>_name</key>
+												<string>Elements SE SSD</string>
+												<key>bsd_name</key>
+												<string>disk4</string>
+												<key>partition_map_type</key>
+												<string>guid_partition_map_type</string>
+												<key>removable_media</key>
+												<string>no</string>
+												<key>size</key>
+												<string>2 TB</string>
+												<key>size_in_bytes</key>
+												<integer>2000398843904</integer>
+												<key>smart_status</key>
+												<string>Verified</string>
+												<key>volumes</key>
+												<array>
+													<dict>
+														<key>_name</key>
+														<string>disk4s1</string>
+														<key>bsd_name</key>
+														<string>disk4s1</string>
+														<key>iocontent</key>
+														<string>Apple_APFS</string>
+														<key>size</key>
+														<string>2 TB</string>
+														<key>size_in_bytes</key>
+														<integer>2000262529024</integer>
+													</dict>
+												</array>
+											</dict>
+										</array>
+										<key>_name</key>
+										<string>Elements SE SSD</string>
+										<key>bcd_device</key>
+										<string>60.02</string>
+										<key>bus_power</key>
+										<string>900</string>
+										<key>bus_power_used</key>
+										<string>896</string>
+										<key>device_speed</key>
+										<string>super_speed</string>
+										<key>extra_current_used</key>
+										<string>0</string>
+										<key>location_id</key>
+										<string>0x14944000 / 14</string>
+										<key>manufacturer</key>
+										<string>Western Digital</string>
+										<key>product_id</key>
+										<string>0x2655</string>
+										<key>serial_num</key>
+										<string>323330394458343030303832</string>
+										<key>vendor_id</key>
+										<string>0x1058  (Western Digital Technologies, Inc.)</string>
+									</dict>
+									<dict>
+										<key>Media</key>
+										<array>
+											<dict>
+												<key>Logical Unit</key>
+												<integer>0</integer>
+												<key>USB Interface</key>
+												<integer>0</integer>
+												<key>_name</key>
+												<string>USB 3.0 FD</string>
+												<key>bsd_name</key>
+												<string>disk2</string>
+												<key>partition_map_type</key>
+												<string>unknown_partition_map_type</string>
+												<key>removable_media</key>
+												<string>yes</string>
+												<key>size</key>
+												<string>61.96 GB</string>
+												<key>size_in_bytes</key>
+												<integer>61958258688</integer>
+												<key>smart_status</key>
+												<string>Verified</string>
+											</dict>
+										</array>
+										<key>_name</key>
+										<string>USB 3.0 FD</string>
+										<key>bcd_device</key>
+										<string>1.10</string>
+										<key>bus_power</key>
+										<string>900</string>
+										<key>bus_power_used</key>
+										<string>504</string>
+										<key>device_speed</key>
+										<string>super_speed</string>
+										<key>extra_current_used</key>
+										<string>0</string>
+										<key>location_id</key>
+										<string>0x14943000 / 13</string>
+										<key>manufacturer</key>
+										<string>PNY</string>
+										<key>product_id</key>
+										<string>0x00ed</string>
+										<key>serial_num</key>
+										<string>07088371991B9702</string>
+										<key>vendor_id</key>
+										<string>0x154b  (PNY Technologies Inc.)</string>
+									</dict>
+									<dict>
+										<key>Media</key>
+										<array>
+											<dict>
+												<key>Logical Unit</key>
+												<integer>0</integer>
+												<key>USB Interface</key>
+												<integer>0</integer>
+												<key>_name</key>
+												<string>PSSD T7</string>
+												<key>bsd_name</key>
+												<string>disk3</string>
+												<key>partition_map_type</key>
+												<string>guid_partition_map_type</string>
+												<key>removable_media</key>
+												<string>no</string>
+												<key>size</key>
+												<string>2 TB</string>
+												<key>size_in_bytes</key>
+												<integer>2000398934016</integer>
+												<key>smart_status</key>
+												<string>Verified</string>
+												<key>volumes</key>
+												<array>
+													<dict>
+														<key>_name</key>
+														<string>EFI</string>
+														<key>bsd_name</key>
+														<string>disk3s1</string>
+														<key>file_system</key>
+														<string>MS-DOS FAT32</string>
+														<key>iocontent</key>
+														<string>EFI</string>
+														<key>size</key>
+														<string>209.7 MB</string>
+														<key>size_in_bytes</key>
+														<integer>209715200</integer>
+														<key>volume_uuid</key>
+														<string>0E239BC6-F960-3107-89CF-1C97F78BB46B</string>
+													</dict>
+													<dict>
+														<key>_name</key>
+														<string>disk3s2</string>
+														<key>bsd_name</key>
+														<string>disk3s2</string>
+														<key>iocontent</key>
+														<string>Apple_APFS</string>
+														<key>size</key>
+														<string>2 TB</string>
+														<key>size_in_bytes</key>
+														<integer>2000188080128</integer>
+													</dict>
+												</array>
+											</dict>
+										</array>
+										<key>_name</key>
+										<string>PSSD T7</string>
+										<key>bcd_device</key>
+										<string>1.00</string>
+										<key>bus_power</key>
+										<string>900</string>
+										<key>bus_power_used</key>
+										<string>896</string>
+										<key>device_speed</key>
+										<string>super_speed</string>
+										<key>extra_current_used</key>
+										<string>0</string>
+										<key>location_id</key>
+										<string>0x14941000 / 12</string>
+										<key>manufacturer</key>
+										<string>Samsung</string>
+										<key>product_id</key>
+										<string>0x4001</string>
+										<key>serial_num</key>
+										<string>S6XENS0W606752A</string>
+										<key>vendor_id</key>
+										<string>0x04e8  (Samsung Electronics Co., Ltd.)</string>
+									</dict>
+								</array>
+								<key>_name</key>
+								<string>4-Port USB 3.1 Hub</string>
+								<key>bcd_device</key>
+								<string>1.27</string>
+								<key>bus_power</key>
+								<string>900</string>
+								<key>bus_power_used</key>
+								<string>0</string>
+								<key>device_speed</key>
+								<string>super_speed</string>
+								<key>extra_current_used</key>
+								<string>0</string>
+								<key>location_id</key>
+								<string>0x14940000 / 11</string>
+								<key>manufacturer</key>
+								<string>Generic</string>
+								<key>product_id</key>
+								<string>0x0411</string>
+								<key>vendor_id</key>
+								<string>0x0bda  (Realtek Semiconductor Corp.)</string>
+							</dict>
+						</array>
+						<key>_name</key>
+						<string>4-Port USB 3.1 Hub</string>
+						<key>bcd_device</key>
+						<string>1.27</string>
+						<key>bus_power</key>
+						<string>900</string>
+						<key>bus_power_used</key>
+						<string>0</string>
+						<key>device_speed</key>
+						<string>super_speed</string>
+						<key>extra_current_used</key>
+						<string>0</string>
+						<key>location_id</key>
+						<string>0x14900000 / 8</string>
+						<key>manufacturer</key>
+						<string>Generic</string>
+						<key>product_id</key>
+						<string>0x0411</string>
+						<key>vendor_id</key>
+						<string>0x0bda  (Realtek Semiconductor Corp.)</string>
+					</dict>
+					<dict>
+						<key>_items</key>
+						<array>
+							<dict>
+								<key>_name</key>
+								<string>USB 2.0 BILLBOARD             </string>
+								<key>bcd_device</key>
+								<string>2.01</string>
+								<key>bus_power</key>
+								<string>500</string>
+								<key>bus_power_used</key>
+								<string>100</string>
+								<key>device_speed</key>
+								<string>high_speed</string>
+								<key>extra_current_used</key>
+								<string>0</string>
+								<key>location_id</key>
+								<string>0x14820000 / 16</string>
+								<key>manufacturer</key>
+								<string>VIA Technologies Inc.         </string>
+								<key>product_id</key>
+								<string>0x0100</string>
+								<key>serial_num</key>
+								<string>0000000000000001</string>
+								<key>vendor_id</key>
+								<string>0x2109  (VIA Labs, Inc.)</string>
+							</dict>
+							<dict>
+								<key>_name</key>
+								<string>USB 2.0 Hub</string>
+								<key>bcd_device</key>
+								<string>1.00</string>
+								<key>bus_power</key>
+								<string>500</string>
+								<key>bus_power_used</key>
+								<string>100</string>
+								<key>device_speed</key>
+								<string>high_speed</string>
+								<key>extra_current_used</key>
+								<string>0</string>
+								<key>location_id</key>
+								<string>0x14810000 / 15</string>
+								<key>product_id</key>
+								<string>0x0801</string>
+								<key>vendor_id</key>
+								<string>0x1a40  (TERMINUS TECHNOLOGY INC.)</string>
+							</dict>
+							<dict>
+								<key>_name</key>
+								<string>USB Billboard Device   </string>
+								<key>bcd_device</key>
+								<string>0.01</string>
+								<key>bus_power</key>
+								<string>500</string>
+								<key>device_speed</key>
+								<string>high_speed</string>
+								<key>extra_current_used</key>
+								<string>0</string>
+								<key>location_id</key>
+								<string>0x14850000 / 17</string>
+								<key>manufacturer</key>
+								<string>VIA Labs, Inc.         </string>
+								<key>product_id</key>
+								<string>0x8817</string>
+								<key>serial_num</key>
+								<string>0000000000000001</string>
+								<key>vendor_id</key>
+								<string>0x2109  (VIA Labs, Inc.)</string>
+							</dict>
+						</array>
+						<key>_name</key>
+						<string>USB2.0 Hub             </string>
+						<key>bcd_device</key>
+						<string>4.53</string>
+						<key>bus_power</key>
+						<string>500</string>
+						<key>bus_power_used</key>
+						<string>0</string>
+						<key>device_speed</key>
+						<string>high_speed</string>
+						<key>extra_current_used</key>
+						<string>0</string>
+						<key>location_id</key>
+						<string>0x14800000 / 5</string>
+						<key>manufacturer</key>
+						<string>VIA Labs, Inc.         </string>
+						<key>product_id</key>
+						<string>0x2817</string>
+						<key>vendor_id</key>
+						<string>0x2109  (VIA Labs, Inc.)</string>
+					</dict>
+					<dict>
+						<key>_name</key>
+						<string>USB2.0 Hub             </string>
+						<key>bcd_device</key>
+						<string>0.50</string>
+						<key>bus_power</key>
+						<string>500</string>
+						<key>bus_power_used</key>
+						<string>0</string>
+						<key>device_speed</key>
+						<string>high_speed</string>
+						<key>extra_current_used</key>
+						<string>0</string>
+						<key>location_id</key>
+						<string>0x14700000 / 4</string>
+						<key>manufacturer</key>
+						<string>VIA Labs, Inc.         </string>
+						<key>product_id</key>
+						<string>0x2817</string>
+						<key>vendor_id</key>
+						<string>0x2109  (VIA Labs, Inc.)</string>
+					</dict>
+					<dict>
+						<key>_name</key>
+						<string>Bluetooth USB Host Controller</string>
+						<key>bcd_device</key>
+						<string>1.09</string>
+						<key>location_id</key>
+						<string>0x14500000</string>
+						<key>manufacturer</key>
+						<string>Broadcom Corp.</string>
+						<key>product_id</key>
+						<string>0x8296</string>
+						<key>vendor_id</key>
+						<string>apple_vendor_id</string>
+					</dict>
+					<dict>
+						<key>Built-in_Device</key>
+						<string>Yes</string>
+						<key>_name</key>
+						<string>FaceTime HD Camera (Built-in)</string>
+						<key>bcd_device</key>
+						<string>72.52</string>
+						<key>bus_power</key>
+						<string>500</string>
+						<key>bus_power_used</key>
+						<string>500</string>
+						<key>device_speed</key>
+						<string>high_speed</string>
+						<key>extra_current_used</key>
+						<string>0</string>
+						<key>location_id</key>
+						<string>0x14400000 / 40</string>
+						<key>manufacturer</key>
+						<string>Apple Inc.</string>
+						<key>product_id</key>
+						<string>0x8511</string>
+						<key>serial_num</key>
+						<string>CCG727301TMH5DFPX</string>
+						<key>vendor_id</key>
+						<string>apple_vendor_id</string>
+					</dict>
+					<dict>
+						<key>_items</key>
+						<array>
+							<dict>
+								<key>_name</key>
+								<string>4-Port USB 2.1 Hub</string>
+								<key>bcd_device</key>
+								<string>1.27</string>
+								<key>bus_power</key>
+								<string>500</string>
+								<key>bus_power_used</key>
+								<string>0</string>
+								<key>device_speed</key>
+								<string>high_speed</string>
+								<key>extra_current_used</key>
+								<string>0</string>
+								<key>location_id</key>
+								<string>0x14340000 / 7</string>
+								<key>manufacturer</key>
+								<string>Generic</string>
+								<key>product_id</key>
+								<string>0x5411</string>
+								<key>vendor_id</key>
+								<string>0x0bda  (Realtek Semiconductor Corp.)</string>
+							</dict>
+							<dict>
+								<key>_name</key>
+								<string>Microsoft® LifeCam VX-2000</string>
+								<key>bcd_device</key>
+								<string>1.00</string>
+								<key>bus_power</key>
+								<string>500</string>
+								<key>bus_power_used</key>
+								<string>500</string>
+								<key>device_speed</key>
+								<string>high_speed</string>
+								<key>extra_current_used</key>
+								<string>0</string>
+								<key>location_id</key>
+								<string>0x14330000 / 9</string>
+								<key>manufacturer</key>
+								<string>Microsoft</string>
+								<key>product_id</key>
+								<string>0x0761</string>
+								<key>vendor_id</key>
+								<string>0x045e  (Microsoft Corporation)</string>
+							</dict>
+							<dict>
+								<key>_name</key>
+								<string>Magic Mouse</string>
+								<key>bcd_device</key>
+								<string>8.74</string>
+								<key>bus_power</key>
+								<string>500</string>
+								<key>bus_power_used</key>
+								<string>500</string>
+								<key>device_speed</key>
+								<string>full_speed</string>
+								<key>extra_current_used</key>
+								<string>0</string>
+								<key>location_id</key>
+								<string>0x14310000 / 41</string>
+								<key>manufacturer</key>
+								<string>Apple Inc.</string>
+								<key>product_id</key>
+								<string>0x0269</string>
+								<key>serial_num</key>
+								<string>CC264451U51GRHQAS</string>
+								<key>sleep_current</key>
+								<string>500</string>
+								<key>vendor_id</key>
+								<string>apple_vendor_id</string>
+							</dict>
+						</array>
+						<key>_name</key>
+						<string>4-Port USB 2.1 Hub</string>
+						<key>bcd_device</key>
+						<string>1.27</string>
+						<key>bus_power</key>
+						<string>500</string>
+						<key>bus_power_used</key>
+						<string>0</string>
+						<key>device_speed</key>
+						<string>high_speed</string>
+						<key>extra_current_used</key>
+						<string>0</string>
+						<key>location_id</key>
+						<string>0x14300000 / 3</string>
+						<key>manufacturer</key>
+						<string>Generic</string>
+						<key>product_id</key>
+						<string>0x5411</string>
+						<key>vendor_id</key>
+						<string>0x0bda  (Realtek Semiconductor Corp.)</string>
+					</dict>
+					<dict>
+						<key>_name</key>
+						<string>USB Receiver</string>
+						<key>bcd_device</key>
+						<string>24.11</string>
+						<key>bus_power</key>
+						<string>500</string>
+						<key>bus_power_used</key>
+						<string>98</string>
+						<key>device_speed</key>
+						<string>full_speed</string>
+						<key>extra_current_used</key>
+						<string>0</string>
+						<key>location_id</key>
+						<string>0x14200000 / 10</string>
+						<key>manufacturer</key>
+						<string>Logitech</string>
+						<key>product_id</key>
+						<string>0xc52b</string>
+						<key>vendor_id</key>
+						<string>0x046d  (Logitech Inc.)</string>
+					</dict>
+					<dict>
+						<key>_name</key>
+						<string>Jabra SPEAK 410 USB</string>
+						<key>bcd_device</key>
+						<string>1.09</string>
+						<key>bus_power</key>
+						<string>500</string>
+						<key>bus_power_used</key>
+						<string>500</string>
+						<key>device_speed</key>
+						<string>full_speed</string>
+						<key>extra_current_used</key>
+						<string>0</string>
+						<key>location_id</key>
+						<string>0x14100000 / 2</string>
+						<key>product_id</key>
+						<string>0x0412</string>
+						<key>serial_num</key>
+						<string>1C48F922E3A7x010900</string>
+						<key>vendor_id</key>
+						<string>0x0b0e  (GN Netcom)</string>
+					</dict>
+				</array>
+				<key>_name</key>
+				<string>USB30Bus</string>
+				<key>host_controller</key>
+				<string>AppleUSBXHCISPT</string>
+				<key>pci_device</key>
+				<string>0xa12f </string>
+				<key>pci_revision</key>
+				<string>0x0031 </string>
+				<key>pci_vendor</key>
+				<string>0x8086 </string>
+			</dict>
+			<dict>
+				<key>_items</key>
+				<array>
+					<dict>
+						<key>_items</key>
+						<array>
+							<dict>
+								<key>_name</key>
+								<string>USB 10/100/1000 LAN</string>
+								<key>bcd_device</key>
+								<string>31.00</string>
+								<key>bus_power</key>
+								<string>900</string>
+								<key>bus_power_used</key>
+								<string>288</string>
+								<key>device_speed</key>
+								<string>super_speed</string>
+								<key>extra_current_used</key>
+								<string>0</string>
+								<key>location_id</key>
+								<string>0x00240000 / 6</string>
+								<key>manufacturer</key>
+								<string>Realtek</string>
+								<key>product_id</key>
+								<string>0x8153</string>
+								<key>serial_num</key>
+								<string>001000001</string>
+								<key>vendor_id</key>
+								<string>0x0bda  (Realtek Semiconductor Corp.)</string>
+							</dict>
+						</array>
+						<key>_name</key>
+						<string>USB3.0 Hub             </string>
+						<key>bcd_device</key>
+						<string>4.53</string>
+						<key>bus_power</key>
+						<string>900</string>
+						<key>bus_power_used</key>
+						<string>0</string>
+						<key>device_speed</key>
+						<string>super_speed</string>
+						<key>extra_current_used</key>
+						<string>0</string>
+						<key>location_id</key>
+						<string>0x00200000 / 5</string>
+						<key>manufacturer</key>
+						<string>VIA Labs, Inc.         </string>
+						<key>product_id</key>
+						<string>0x0817</string>
+						<key>vendor_id</key>
+						<string>0x2109  (VIA Labs, Inc.)</string>
+					</dict>
+					<dict>
+						<key>_items</key>
+						<array>
+							<dict>
+								<key>_name</key>
+								<string>AX88179A</string>
+								<key>bcd_device</key>
+								<string>2.00</string>
+								<key>bus_power</key>
+								<string>900</string>
+								<key>bus_power_used</key>
+								<string>184</string>
+								<key>device_speed</key>
+								<string>super_speed</string>
+								<key>extra_current_used</key>
+								<string>0</string>
+								<key>location_id</key>
+								<string>0x00130000 / 3</string>
+								<key>manufacturer</key>
+								<string>ASIX</string>
+								<key>product_id</key>
+								<string>0x1790</string>
+								<key>serial_num</key>
+								<string>00AAAFA4</string>
+								<key>vendor_id</key>
+								<string>0x0b95  (ASIX Electronics Corporation)</string>
+							</dict>
+						</array>
+						<key>_name</key>
+						<string>USB3.0 Hub             </string>
+						<key>bcd_device</key>
+						<string>0.50</string>
+						<key>bus_power</key>
+						<string>900</string>
+						<key>bus_power_used</key>
+						<string>0</string>
+						<key>device_speed</key>
+						<string>super_speed</string>
+						<key>extra_current_used</key>
+						<string>0</string>
+						<key>location_id</key>
+						<string>0x00100000 / 2</string>
+						<key>manufacturer</key>
+						<string>VIA Labs, Inc.         </string>
+						<key>product_id</key>
+						<string>0x0817</string>
+						<key>vendor_id</key>
+						<string>0x2109  (VIA Labs, Inc.)</string>
+					</dict>
+				</array>
+				<key>_name</key>
+				<string>USB31Bus</string>
+				<key>host_controller</key>
+				<string>AppleUSBXHCIAR</string>
+				<key>pci_device</key>
+				<string>0x15d4 </string>
+				<key>pci_revision</key>
+				<string>0x0002 </string>
+				<key>pci_vendor</key>
+				<string>0x8086 </string>
+				<key>usb_bus_number</key>
+				<string>0x00 </string>
+			</dict>
+		</array>
+		<key>_parentDataType</key>
+		<string>SPHardwareDataType</string>
+		<key>_properties</key>
+		<dict>
+			<key>1284DeviceID</key>
+			<dict>
+				<key>_order</key>
+				<string>13</string>
+			</dict>
+			<key>_name</key>
+			<dict>
+				<key>_isColumn</key>
+				<string>YES</string>
+				<key>_isOutlineColumn</key>
+				<string>YES</string>
+				<key>_order</key>
+				<string>0</string>
+			</dict>
+			<key>bcd_device</key>
+			<dict>
+				<key>_order</key>
+				<string>3</string>
+				<key>_suppressLocalization</key>
+				<string>YES</string>
+			</dict>
+			<key>bsd_name</key>
+			<dict>
+				<key>_order</key>
+				<string>42</string>
+			</dict>
+			<key>bus_power</key>
+			<dict>
+				<key>_order</key>
+				<string>8</string>
+			</dict>
+			<key>bus_power_desired</key>
+			<dict>
+				<key>_order</key>
+				<string>9</string>
+			</dict>
+			<key>bus_power_used</key>
+			<dict>
+				<key>_order</key>
+				<string>10</string>
+			</dict>
+			<key>detachable_drive</key>
+			<dict>
+				<key>_order</key>
+				<string>39</string>
+			</dict>
+			<key>device_manufacturer</key>
+			<dict>
+				<key>_order</key>
+				<string>20</string>
+			</dict>
+			<key>device_model</key>
+			<dict>
+				<key>_order</key>
+				<string>22</string>
+			</dict>
+			<key>device_revision</key>
+			<dict>
+				<key>_order</key>
+				<string>24</string>
+			</dict>
+			<key>device_serial</key>
+			<dict>
+				<key>_order</key>
+				<string>26</string>
+			</dict>
+			<key>device_speed</key>
+			<dict>
+				<key>_order</key>
+				<string>5</string>
+			</dict>
+			<key>disc_burning</key>
+			<dict>
+				<key>_order</key>
+				<string>32</string>
+			</dict>
+			<key>extra_current_used</key>
+			<dict>
+				<key>_order</key>
+				<string>11</string>
+			</dict>
+			<key>file_system</key>
+			<dict>
+				<key>_order</key>
+				<string>40</string>
+			</dict>
+			<key>free_space</key>
+			<dict>
+				<key>_deprecated</key>
+				<true/>
+				<key>_order</key>
+				<string>19</string>
+			</dict>
+			<key>free_space_in_bytes</key>
+			<dict>
+				<key>_isByteSize</key>
+				<true/>
+				<key>_order</key>
+				<string>19</string>
+			</dict>
+			<key>location_id</key>
+			<dict>
+				<key>_order</key>
+				<string>7</string>
+			</dict>
+			<key>manufacturer</key>
+			<dict>
+				<key>_order</key>
+				<string>6</string>
+			</dict>
+			<key>mount_point</key>
+			<dict>
+				<key>_order</key>
+				<string>44</string>
+			</dict>
+			<key>optical_drive_type</key>
+			<dict>
+				<key>_order</key>
+				<string>30</string>
+			</dict>
+			<key>optical_media_type</key>
+			<dict>
+				<key>_order</key>
+				<string>31</string>
+			</dict>
+			<key>product_id</key>
+			<dict>
+				<key>_order</key>
+				<string>1</string>
+			</dict>
+			<key>removable_media</key>
+			<dict>
+				<key>_order</key>
+				<string>34</string>
+			</dict>
+			<key>serial_num</key>
+			<dict>
+				<key>_order</key>
+				<string>4</string>
+				<key>_suppressLocalization</key>
+				<string>YES</string>
+			</dict>
+			<key>size</key>
+			<dict>
+				<key>_deprecated</key>
+				<true/>
+				<key>_order</key>
+				<string>18</string>
+			</dict>
+			<key>size_in_bytes</key>
+			<dict>
+				<key>_isByteSize</key>
+				<true/>
+				<key>_order</key>
+				<string>18</string>
+			</dict>
+			<key>sleep_current</key>
+			<dict>
+				<key>_order</key>
+				<string>12</string>
+			</dict>
+			<key>vendor_id</key>
+			<dict>
+				<key>_order</key>
+				<string>2</string>
+			</dict>
+			<key>volumes</key>
+			<dict>
+				<key>_detailLevel</key>
+				<string>0</string>
+			</dict>
+			<key>writable</key>
+			<dict>
+				<key>_order</key>
+				<string>36</string>
+			</dict>
+		</dict>
+		<key>_timeStamp</key>
+		<date>2025-07-14T19:55:48Z</date>
+		<key>_versionInfo</key>
+		<dict>
+			<key>com.apple.SystemProfiler.SPUSBReporter</key>
+			<string>900.4.2</string>
+		</dict>
+	</dict>
+</array>
+</plist>

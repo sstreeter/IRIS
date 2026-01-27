@@ -1,0 +1,482 @@
+import platform
+import sys
+import json
+import re
+import datetime
+import glob
+import os
+import plistlib # Added to this file for parsing system_profiler -xml output
+from dataclasses import dataclass # Added for structured data
+from typing import List, Optional # Added for type hinting in dataclasses
+
+
+# --- Data classes for structured reporting (NEW) ---
+@dataclass
+class USBDevice:
+    name: str
+    manufacturer: Optional[str]
+    product_id: Optional[str]
+    vendor_id: Optional[str]
+    serial: Optional[str]
+    location_id: Optional[str]
+
+@dataclass
+class DiskInfo:
+    name: str
+    type: str       # e.g., "Physical Disk", "Partition"
+    size_gb: float
+    used: Optional[str] # human-readable string (e.g., "500 GB")
+    available: Optional[str] # human-readable string (e.g., "200 GB")
+    filesystem: Optional[str]
+    mount_point: Optional[str]
+    serial: Optional[str]
+    volume_name: Optional[str]
+    device_identifier: Optional[str]
+    # Add other fields like SMART health if easily retrievable
+# --- END Data classes ---
+
+
+# Import helpers from the utils package
+import IRISX_app.utils.helpers as helpers
+
+def sys_info(app_instance, helpers, browser_preference="System Default"):
+    """Gathers and reports general system information."""
+    helpers.log_output(app_instance, "\nRunning System Info Report....")
+    
+    html_body = "" # Start with empty string, build sections below
+
+    # --- General System Information ---
+    html_body += "<h2>General System Information</h2><table><tr><th>Attribute</th><th>Value</th></tr>"
+    html_body += f"<tr><td>System</td><td>{platform.system()}</td></tr>"
+    html_body += f"<tr><td>Node Name</td><td>{platform.node()}</td></tr>"
+    html_body += f"<tr><td>Machine Architecture</td><td>{platform.machine()}</td></tr>"
+    html_body += f"<tr><td>Processor (Generic)</td><td>{platform.processor()}</td></tr>"
+    
+    if sys.platform == "win32":
+        helpers.log_output(app_instance, "Gathering detailed Windows system information...")
+        output_os = helpers.run_command('systeminfo | findstr /B /C:"OS Name" /C:"OS Version" /C:"System Manufacturer" /C:"System Model" /C:"Processor(s)" /C:"Total Physical Memory"', app_instance=app_instance)
+        if output_os:
+            for line in output_os.strip().split('\n'):
+                if ":" in line:
+                    attr, val = line.split(":", 1)
+                    html_body += f"<tr><td>{attr.strip()}</td><td>{val.strip()}</td></tr>"
+    
+    elif sys.platform == "darwin":
+        helpers.log_output(app_instance, "Gathering detailed macOS system information using `system_profiler`...")
+
+        # --- macOS Specific OS and CPU Info ---
+        try:
+            # SPSoftwareDataType for OS Version
+            sw_info = helpers.run_command("system_profiler SPSoftwareDataType", check_shell=True, app_instance=app_instance)
+            if sw_info:
+                os_match = re.search(r'System Version: (.+)', sw_info)
+                build_match = re.search(r'Build Version: (.+)', sw_info)
+                if os_match: html_body += f"<tr><td>macOS Version</td><td>{os_match.group(1).strip()}</td></tr>"
+                if build_match: html_body += f"<tr><td>macOS Build</td><td>{build_match.group(1).strip()}</td></tr>"
+            
+            # SPHardwareDataType for detailed CPU
+            hw_info = helpers.run_command("system_profiler SPHardwareDataType", check_shell=True, app_instance=app_instance)
+            if hw_info:
+                processor_match = re.search(r'Processor Name: (.+)', hw_info)
+                speed_match = re.search(r'Processor Speed: (.+)', hw_info)
+                cores_match = re.search(r'Total Number of Cores: (.+)', hw_info)
+                if processor_match: html_body += f"<tr><td>Processor (Detailed)</td><td>{processor_match.group(1).strip()}</td></tr>"
+                if speed_match: html_body += f"<tr><td>Processor Speed</td><td>{speed_match.group(1).strip()}</td></tr>"
+                if cores_match: html_body += f"<tr><td>Number of Cores</td><td>{cores_match.group(1).strip()}</td></tr>"
+        except Exception as e:
+            helpers.log_output(app_instance, f"Error gathering macOS OS/CPU details: {e}")
+            html_body += f"<tr><td colspan='2'>Error gathering detailed macOS OS/CPU info.</td></tr>"
+
+    html_body += """</table>""" # End General System Info table
+
+    # --- Memory Information ---
+    html_body += "<h2>Memory (RAM) Information</h2><table><tr><th>Metric</th><th>Value</th></tr>"
+    if sys.platform == "darwin":
+        try:
+            # sysctl for total physical memory
+            total_mem_kb_str = helpers.run_command("sysctl -n hw.memsize", check_shell=True, app_instance=app_instance)
+            if total_mem_kb_str:
+                total_mem_gb = round(int(total_mem_kb_str.strip()) / (1024**3), 2)
+                html_body += f"<tr><td>Total Physical Memory</td><td>{total_mem_gb} GB</td></tr>"
+            else:
+                helpers.log_output(app_instance, "Could not retrieve total physical memory via sysctl.")
+
+            # vm_stat for active, inactive, wired, compressed
+            vm_stat_output = helpers.run_command("vm_stat", check_shell=True, app_instance=app_instance)
+            if vm_stat_output:
+                page_size_match = re.search(r'Page size of (\d+) bytes', vm_stat_output)
+                if page_size_match:
+                    page_size_bytes = int(page_size_match.group(1))
+                    page_size_gb = page_size_bytes / (1024**3)
+                else:
+                    page_size_gb = 4096 / (1024**3) # Default to 4KB if not found
+                    helpers.log_output(app_instance, "Warning: Could not determine vm_stat page size, defaulting to 4KB.")
+
+                active_match = re.search(r'Pages active:\s+(\d+)', vm_stat_output)
+                inactive_match = re.search(r'Pages inactive:\s+(\d+)', vm_stat_output)
+                wired_match = re.search(r'Pages wired down:\s+(\d+)', vm_stat_output)
+                compressed_match = re.search(r'Pages occupied by physical pages that have been decompressed:\s+(\d+)', vm_stat_output)
+
+                active_gb = round(int(active_match.group(1)) * page_size_gb, 2) if active_match and active_match.group(1).isdigit() else 0
+                inactive_gb = round(int(inactive_match.group(1)) * page_size_gb, 2) if inactive_match and inactive_match.group(1).isdigit() else 0
+                wired_gb = round(int(wired_match.group(1)) * page_size_gb, 2) if wired_match and wired_match.group(1).isdigit() else 0
+                compressed_gb = round(int(compressed_match.group(1)) * page_size_gb, 2) if compressed_match and compressed_match.group(1).isdigit() else 0
+
+                html_body += f"<tr><td>Memory Active</td><td>{active_gb} GB</td></tr>"
+                html_body += f"<tr><td>Memory Inactive</td><td>{inactive_gb} GB</td></tr>"
+                html_body += f"<tr><td>Memory Wired</td><td>{wired_gb} GB</td></tr>"
+                html_body += f"<tr><td>Memory Compressed</td><td>{compressed_gb} GB</td></tr>"
+                
+                if 'total_mem_gb' in locals():
+                    used_approx = active_gb + inactive_gb + wired_gb
+                    available_approx = total_mem_gb - used_approx
+                    html_body += f"<tr><td>Memory Used (Approx)</td><td>{round(used_approx, 2)} GB</td></tr>"
+                    html_body += f"<tr><td>Memory Available (Approx)</td><td>{round(available_approx, 2)} GB</td></tr>"
+                else:
+                    html_body += f"<tr><td colspan='2'>Memory Used/Available approximation not possible without Total Memory.</td></tr>"
+
+            # For Swap (memory cached on hard drive)
+            swap_info = helpers.run_command("sysctl vm.swapusage", check_shell=True, app_instance=app_instance)
+            if swap_info:
+                swap_match = re.search(r'total = (.+?), used = (.+?), free = (.+?)', swap_info)
+                if swap_match:
+                    html_body += f"<tr><td>Swap Total</td><td>{swap_match.group(1).strip()}</td></tr>"
+                    html_body += f"<tr><td>Swap Used</td><td>{swap_match.group(2).strip()}</td></tr>"
+                    html_body += f"<tr><td>Swap Free</td><td>{swap_match.group(3).strip()}</td></tr>"
+                else:
+                    helpers.log_output(app_instance, "Could not parse swapusage output.")
+            else:
+                helpers.log_output(app_instance, "Could not retrieve swapusage info.")
+
+        except Exception as e:
+            helpers.log_output(app_instance, f"Error gathering macOS Memory details: {e}")
+            html_body += f"<tr><td colspan='2'>Error gathering detailed macOS Memory info.</td></tr>"
+    elif sys.platform == "win32":
+        try:
+            wmic_mem_output = helpers.run_command("wmic ComputerSystem get TotalPhysicalMemory", app_instance=app_instance)
+            if wmic_mem_output:
+                total_mem_bytes = int(wmic_mem_output.split('\n')[1].strip())
+                total_mem_gb = round(total_mem_bytes / (1024**3), 2)
+                    html_body += f"<tr><td>Total Physical Memory</td><td>{total_mem_gb} GB</td></tr>"
+
+            wmic_os_mem_output = helpers.run_command("wmic OS get FreePhysicalMemory,TotalVisibleMemorySize,FreeVirtualMemory,TotalVirtualMemorySize", app_instance=app_instance)
+            if wmic_os_mem_output:
+                lines = wmic_os_mem_output.strip().split('\n')
+                if len(lines) > 1:
+                    headers = [h.strip() for h in lines[0].split()]
+                    values = [v.strip() for v in lines[1].split()]
+                    mem_dict = dict(zip(headers, values))
+                    
+                    html_body += f"<tr><td>Free Physical Memory</td><td>{round(int(mem_dict.get('FreePhysicalMemory', 0)) / 1024, 2)} MB</td></tr>"
+                    html_body += f"<tr><td>Total Visible Memory</td><td>{round(int(mem_dict.get('TotalVisibleMemorySize', 0)) / 1024, 2)} MB</td></tr>"
+                    html_body += f"<tr><td>Free Virtual Memory</td><td>{round(int(mem_dict.get('FreeVirtualMemory', 0)) / 1024, 2)} MB</td></tr>"
+                    html_body += f"<tr><td>Total Virtual Memory</td><td>{round(int(mem_dict.get('TotalVirtualMemorySize', 0)) / 1024, 2)} MB</td></tr>"
+        except Exception as e:
+            helpers.log_output(app_instance, f"Error gathering Windows Memory details: {e}")
+            html_body += f"<tr><td colspan='2'>Error gathering detailed Windows Memory info.</td></tr>"
+    html_body += """</table>"""
+
+    # --- Storage Information ---
+    html_body += "<h2>Storage Information</h2><table><tr><th>Drive/Volume</th><th>Size</th><th>Used</th><th>Available</th><th>Filesystem</th><th>Mount Point</th><th>Serial (if available)</th></tr>"
+    if sys.platform == "darwin":
+        parsed_disks = []
+        try:
+            disk_info_plist_str = helpers.run_command("diskutil list -plist", check_shell=True, app_instance=app_instance)
+            if disk_info_plist_str:
+                try:
+                    disk_plist = plistlib.loads(disk_info_plist_str.encode('utf-8'))
+                    all_disks_and_partitions = disk_plist.get('AllDisksAndPartitions', [])
+                    
+                    for disk_entry in all_disks_and_partitions:
+                        # Defensive check: ensure disk_entry is actually a dictionary
+                        if not isinstance(disk_entry, dict):
+                            helpers.log_output(app_instance, f"Warning: Skipping non-dictionary disk entry: {type(disk_entry)} - {disk_entry}")
+                            continue # Skip to next item in loop
+
+                        disk_name = disk_entry.get('DeviceIdentifier', 'N/A')
+                        disk_size_bytes = disk_entry.get('Size', 0)
+                        disk_size_gb = round(disk_size_bytes / (1024**3), 2)
+                        disk_serial = "N/A"
+
+                        if disk_entry.get('Product'):
+                            # Try to get serial for the *physical* disk
+                            # Combine SPNVMeDataType and SPSerialATADataType for modern Macs
+                            serial_output = helpers.run_command(f"system_profiler SPNVMeDataType SPSerialATADataType | grep \"{disk_entry['Product']}\" -B 5 | grep \"Serial Number:\"", check_shell=True, app_instance=app_instance)
+                            if serial_output:
+                                serial_match = re.search(r'Serial Number: (.+)', serial_output)
+                                if serial_match:
+                                    disk_serial = serial_match.group(1).strip()
+                            else:
+                                helpers.log_output(app_instance, f"Could not get serial for {disk_name} via system_profiler.")
+                        
+                        parsed_disks.append(DiskInfo(
+                            name=disk_name,
+                            type="Physical Disk",
+                            size_gb=disk_size_gb,
+                            used="N/A", available="N/A", # These are for logical volumes
+                            filesystem="N/A", mount_point="N/A",
+                            serial=disk_serial,
+                            volume_name="N/A", device_identifier=disk_name # Populate other fields as N/A for physical
+                        ))
+
+                        if 'Partitions' in disk_entry and isinstance(disk_entry['Partitions'], list):
+                            for partition in disk_entry['Partitions']:
+                                # Defensive check: ensure partition is a dictionary
+                                if not isinstance(partition, dict):
+                                    helpers.log_output(app_instance, f"Warning: Skipping non-dictionary partition: {type(partition)} - {partition}")
+                                    continue
+                                
+                                part_name = partition.get('VolumeName', partition.get('DeviceIdentifier', 'N/A'))
+                                part_size_bytes = partition.get('Size', 0)
+                                part_size_gb = round(part_size_bytes / (1024**3), 2)
+                                part_fs = partition.get('FilesystemType', 'N/A')
+                                part_mount_point = partition.get('MountPoint', 'N/A')
+
+                                used = "N/A"
+                                avail = "N/A"
+                                if part_mount_point and part_mount_point != "N/A":
+                                    df_output = helpers.run_command(f"df -h '{part_mount_point}'", check_shell=True, app_instance=app_instance)
+                                    if df_output and len(df_output.splitlines()) > 1:
+                                        df_parts = df_output.splitlines()[1].split()
+                                        if len(df_parts) > 3:
+                                            used = df_parts[2]
+                                            avail = df_parts[3]
+
+                                parsed_disks.append(DiskInfo(
+                                    name=part_name,
+                                    type="Partition",
+                                    size_gb=part_size_gb,
+                                    used=used, available=avail,
+                                    filesystem=part_fs, mount_point=part_mount_point,
+                                    serial="N/A", # Partitions usually don't have separate serials
+                                    volume_name=partition.get('VolumeName'), device_identifier=partition.get('DeviceIdentifier')
+                                ))
+
+                    except plistlib.InvalidFileException:
+                        helpers.log_output(app_instance, f"Error: diskutil list -plist output not a valid plist. Raw output snippet: {disk_info_plist_str[:500]}...")
+                        html_body += f"<tr><td colspan='7'>Error parsing diskutil output. Raw data snippet: <pre>{disk_info_plist_str[:500]}</pre></td></tr>"
+                    except Exception as e:
+                        helpers.log_output(app_instance, f"Unexpected error parsing diskutil list: {e}")
+                        html_body += f"<tr><td colspan='7'>Unexpected error parsing diskutil list.</td></tr>"
+
+            if parsed_disks:
+                for d in parsed_disks:
+                    html_body += f"<tr><td>{d.name} ({d.type})</td><td>{d.size_gb} GB</td><td>{d.used}</td><td>{d.available}</td><td>{d.filesystem}</td><td>{d.mount_point}</td><td>{d.serial}</td></tr>"
+            else:
+                html_body += "<p>No storage devices found or processed.</p>"
+
+        except Exception as e:
+            helpers.log_output(app_instance, f"Error gathering macOS Storage details: {e}")
+            html_body += f"<tr><td colspan='7'>Error gathering detailed macOS Storage info.</td></tr>"
+    elif sys.platform == "win32":
+        try:
+            wmic_disk_output = helpers.run_command("wmic diskdrive get Caption,SerialNumber,Size /format:list", app_instance=app_instance)
+            if wmic_disk_output:
+                html_body += "<tr><th colspan='7'>Physical Disk Drives</th></tr>"
+                current_disk = {}
+                for line in wmic_disk_output.strip().split('\n'):
+                    if '=' in line:
+                        key, value = line.split('=', 1)
+                        current_disk[key.strip()] = value.strip()
+                    elif not line.strip() and current_disk:
+                        size_gb = round(int(current_disk.get('Size', 0)) / (1024**3), 2)
+                        html_body += f"<tr><td>{current_disk.get('Caption', 'N/A')}</td><td>{size_gb} GB</td><td>N/A</td><td>N/A</td><td>N/A</td><td>N/A</td><td>{current_disk.get('SerialNumber', 'N/A')}</td></tr>"
+                        current_disk = {}
+                if current_disk:
+                    size_gb = round(int(current_disk.get('Size', 0)) / (1024**3), 2)
+                    html_body += f"<tr><td>{current_disk.get('Caption', 'N/A')}</td><td>{size_gb} GB</td><td>N/A</td><td>N/A</td><td>N/A</td><td>N/A</td><td>{current_disk.get('SerialNumber', 'N/A')}</td></tr>"
+
+            wmic_volume_output = helpers.run_command("wmic logicaldisk get Caption,Freespace,Size,FileSystem /format:list", app_instance=app_instance)
+            if wmic_volume_output:
+                html_body += "<tr><th colspan='7'>Logical Disk Volumes</th></tr>"
+                current_volume = {}
+                for line in wmic_volume_output.strip().split('\n'):
+                    if '=' in line:
+                        key, value = line.split('=', 1)
+                        current_volume[key.strip()] = value.strip()
+                    elif not line.strip() and current_volume:
+                        size_gb = round(int(current_volume.get('Size', 0)) / (1024**3), 2)
+                        free_gb = round(int(current_volume.get('FreeSpace', 0)) / (1024**3), 2)
+                        used_gb = round(size_gb - free_gb, 2)
+                        html_body += f"<tr><td>{current_volume.get('Caption', 'N/A')}</td><td>{size_gb} GB</td><td>{used_gb} GB</td><td>{free_gb} GB</td><td>{current_volume.get('FileSystem', 'N/A')}</td><td>N/A</td><td>N/A</td></tr>"
+                        current_volume = {}
+                if current_volume:
+                    size_gb = round(int(current_volume.get('Size', 0)) / (1024**3), 2)
+                    free_gb = round(int(current_volume.get('FreeSpace', 0)) / (1024**3), 2)
+                    used_gb = round(size_gb - free_gb, 2)
+                    html_body += f"<tr><td>{current_volume.get('Caption', 'N/A')}</td><td>{size_gb} GB</td><td>{used_gb} GB</td><td>{free_gb} GB</td><td>{current_volume.get('FileSystem', 'N/A')}</td><td>N/A</td><td>N/A</td></tr>"
+
+        except Exception as e:
+            helpers.log_output(app_instance, f"Error gathering Windows Storage details: {e}")
+            html_body += f"<tr><td colspan='7'>Error gathering detailed Windows Storage info.</td></tr>"
+    html_body += """</table>"""
+
+    # --- Connected Devices (USB, Camera, Bluetooth) ---
+    html_body += "<h2>Connected Devices</h2>"
+    if sys.platform == "darwin":
+        try:
+            # USB Devices
+            html_body += "<h3>USB Devices</h3>"
+            usb_info_plist_str = helpers.run_command("system_profiler -xml SPUSBDataType", check_shell=True, app_instance=app_instance)
+            if usb_info_plist_str:
+                try:
+                    usb_plist = plistlib.loads(usb_info_plist_str.encode('utf-8'))
+                    usb_items = usb_plist.get('SPUSBDataType', [])
+                    usb_devices_parsed = []
+
+                    # Nested helper function to recursively parse USB device tree
+                    def parse_usb_device(device_dict_or_list):
+                        # Handle cases where plist structure might put a list directly where a dict is expected, or nested lists
+                        if isinstance(device_dict_or_list, list):
+                            for item in device_dict_or_list:
+                                parse_usb_device(item) # Recurse on list elements
+                            return
+                        
+                        # Only proceed if it's a dictionary
+                        if not isinstance(device_dict_or_list, dict):
+                            helpers.log_output(app_instance, f"Warning: parse_usb_device skipping non-dictionary item: {type(device_dict_or_list)} - {device_dict_or_list}")
+                            return
+
+                        name = device_dict_or_list.get('_name', 'N/A')
+                        manufacturer = device_dict_or_list.get('manufacturer', 'N/A')
+                        product_id = device_dict_or_list.get('product_id', 'N/A')
+                        vendor_id = device_dict_or_list.get('vendor_id', 'N/A')
+                        serial_number = device_dict_or_list.get('serial_num', 'N/A')
+                        location_id = device_dict_or_list.get('location_id', 'N/A')
+                        
+                        usb_devices_parsed.append(USBDevice(
+                            name=name,
+                            manufacturer=manufacturer,
+                            product_id=product_id,
+                            vendor_id=vendor_id,
+                            serial=serial_number,
+                            location_id=location_id
+                        ))
+                        
+                        # Recursively parse children (USB hubs/devices connected)
+                        if 'usb_device' in device_dict_or_list and isinstance(device_dict_or_list['usb_device'], list):
+                            for child_device in device_dict_or_list['usb_device']:
+                                parse_usb_device(child_device) # Recurse on the value of 'usb_device' key
+
+                    for usb_root_device in usb_items:
+                        parse_usb_device(usb_root_device)
+                    
+                    if usb_devices_parsed:
+                        html_body += "<table><tr><th>Name</th><th>Manufacturer</th><th>Product ID</th><th>Vendor ID</th><th>Serial Number</th><th>Location ID</th></tr>"
+                        for dev in usb_devices_parsed:
+                            # Use .get() on dataclass fields where Optional might mean None, but also ensure it's a dict for safety
+                            html_body += f"<tr><td>{dev.name}</td><td>{dev.manufacturer}</td><td>{dev.product_id}</td><td>{dev.vendor_id}</td><td>{dev.serial if dev.serial else 'N/A'}</td><td>{dev.location_id}</td></tr>" 
+                        html_body += "</table>"
+                    else:
+                        html_body += "<p>No USB devices found.</p>"
+
+                except plistlib.InvalidFileException:
+                    helpers.log_output(app_instance, f"Error: system_profiler SPUSBDataType -xml output not valid. Snippet: {usb_info_plist_str[:500]}...")
+                    html_body += f"<p>Error parsing USB device info (invalid plist format). Snippet: <pre>{usb_info_plist_str[:500]}</pre></p>"
+                except Exception as e:
+                    helpers.log_output(app_instance, f"Unexpected error parsing USB device info: {e}")
+                    html_body += f"<p>Unexpected error parsing USB device info.</p>"
+            else:
+                helpers.log_output(app_instance, "Could not retrieve USB device information via system_profiler.")
+                html_body += "<p>Could not retrieve USB device information.</p>"
+
+            # Camera
+            html_body += "<h3>Camera Information</h3>"
+            camera_info_plist_str = helpers.run_command("system_profiler -xml SPCameraDataType", check_shell=True, app_instance=app_instance)
+            if camera_info_plist_str:
+                try:
+                    camera_plist = plistlib.loads(camera_info_plist_str.encode('utf-8'))
+                    camera_items = camera_plist.get('SPCameraDataType', [])
+                    if camera_items:
+                        html_body += "<table><tr><th>Name</th><th>Manufacturer</th><th>Model ID</th><th>Unique ID</th></tr>"
+                        for cam_dict in camera_items:
+                            if isinstance(cam_dict, dict):
+                                html_body += f"<tr><td>{cam_dict.get('_name', 'N/A')}</td><td>{cam_dict.get('manufacturer', 'N/A')}</td><td>{cam_dict.get('model_id', 'N/A')}</td><td>{cam_dict.get('unique_id', 'N/A')}</td></tr>"
+                            else:
+                                helpers.log_output(app_instance, f"Warning: Skipping non-dictionary Camera data: {type(cam_dict)} - {cam_dict}")
+                        html_body += "</table>"
+                    else:
+                        html_body += "<p>No camera found or could not retrieve information.</p>"
+                except plistlib.InvalidFileException:
+                    helpers.log_output(app_instance, f"Error: system_profiler SPCameraDataType -xml output not valid. Snippet: {camera_info_plist_str[:500]}...")
+                    html_body += f"<p>Error parsing Camera info (invalid plist format). Snippet: <pre>{camera_info_plist_str[:500]}</pre></p>"
+                except Exception as e:
+                    helpers.log_output(app_instance, f"Unexpected error parsing Camera info: {e}")
+                    html_body += f"<p>Unexpected error parsing Camera info.</p>"
+            else:
+                helpers.log_output(app_instance, "Could not retrieve Camera information via system_profiler.")
+                html_body += "<p>No camera found or could not retrieve information.</p>"
+
+            # Bluetooth
+            html_body += "<h3>Bluetooth Information</h3>"
+            bluetooth_info_plist_str = helpers.run_command("system_profiler -xml SPBluetoothDataType", check_shell=True, app_instance=app_instance)
+            if bluetooth_info_plist_str:
+                try:
+                    bluetooth_plist = plistlib.loads(bluetooth_info_plist_str.encode('utf-8'))
+                    bluetooth_items = bluetooth_plist.get('SPBluetoothDataType', [])
+                    if bluetooth_items:
+                        html_body += "<table><tr><th>Attribute</th><th>Value</th></tr>"
+                        if bluetooth_items and isinstance(bluetooth_items[0], dict):
+                            for key, value in bluetooth_items[0].items():
+                                if not isinstance(value, (dict, list)):
+                                    html_body += f"<tr><td>{key.replace('_', ' ').title()}</td><td>{value}</td></tr>"
+                            html_body += "</table>"
+
+                            if 'connected_devices' in bluetooth_items[0] and isinstance(bluetooth_items[0]['connected_devices'], list):
+                                html_body += "<h4>Connected Bluetooth Devices:</h4><table><tr><th>Name</th><th>Address</th><th>Service Class</th></tr>"
+                                for device in bluetooth_items[0]['connected_devices']:
+                                    if isinstance(device, dict):
+                                        html_body += f"<tr><td>{device.get('_name', 'N/A')}</td><td>{device.get('device_address', 'N/A')}</td><td>{device.get('device_class_of_service', 'N/A')}</td></tr>"
+                                    else:
+                                        helpers.log_output(app_instance, f"Warning: Skipping non-dictionary Bluetooth connected device data: {device}")
+                                html_body += "</table>"
+                        else:
+                             helpers.log_output(app_instance, f"Warning: SPBluetoothDataType root item is not a dictionary or is empty: {bluetooth_items[:500]}...")
+                             html_body += "<p>No Bluetooth devices found or could not retrieve information (root item issue).</p>"
+                    else:
+                        html_body += "<p>No Bluetooth devices found or could not retrieve information.</p>"
+                except plistlib.InvalidFileException:
+                    helpers.log_output(app_instance, f"Error: system_profiler SPBluetoothDataType -xml output not valid. Snippet: {bluetooth_info_plist_str[:500]}...")
+                    html_body += f"<p>Error parsing Bluetooth info (invalid plist format). Snippet: <pre>{bluetooth_info_plist_str[:500]}</pre></p>"
+                except Exception as e:
+                    helpers.log_output(app_instance, f"Unexpected error parsing Bluetooth info: {e}")
+                    html_body += f"<p>Unexpected error parsing Bluetooth info.</p>"
+            else:
+                helpers.log_output(app_instance, "Could not retrieve Bluetooth information via system_profiler.")
+                html_body += "<p>No Bluetooth devices found or could not retrieve information.</p>"
+
+
+        except Exception as e:
+            helpers.log_output(app_instance, f"Error gathering macOS Connected Devices details: {e}")
+            html_body += f"<p>Error gathering detailed macOS Connected Devices info: {e}</p>"
+    elif sys.platform == "win32":
+        html_body += "<h3>USB Devices (Windows)</h3>"
+        usb_output = helpers.run_command("wmic path Win32_USBHub get DeviceID,PNPDeviceID,Description /format:list", app_instance=app_instance)
+        if usb_output:
+            html_body += "<pre>" + usb_output + "</pre>"
+        else:
+            html_body += "<p>Could not retrieve USB device information.</p>"
+        
+        html_body += "<h3>Camera/Webcam (Windows)</h3>"
+        camera_output = helpers.run_command("wmic path Win32_PnPEntity where \"ConfigManagerErrorCode = 0 and (Name like '%camera%' or Name like '%webcam%')\" get Name,DeviceID /format:list", app_instance=app_instance)
+        if camera_output:
+            html_body += "<pre>" + camera_output + "</pre>"
+        else:
+            html_body += "<p>No camera/webcam found or could not retrieve information.</p>"
+
+        html_body += "<h3>Bluetooth Devices (Windows)</h3>"
+        bluetooth_output = helpers.run_command("wmic path Win32_PnPEntity where \"ConfigManagerErrorCode = 0 and (Name like '%bluetooth%')\" get Name,DeviceID /format:list", app_instance=app_instance)
+        if bluetooth_output:
+            html_body += "<pre>" + bluetooth_output + "</pre>"
+        else:
+            html_body += "<p>No Bluetooth devices found or could not retrieve information.</p>"
+    html_body += """<p>For more detailed interpretations or comparisons, specialized benchmarking tools are required.</p>"""
+
+    helpers.generate_report_html(
+        app_instance, 
+        app_instance.suspect_computer_name, 
+        "SYSINFO_Report.html", 
+        "System Information Report", 
+        html_body,
+        browser_preference=browser_preference
+    )

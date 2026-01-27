@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<array>
+	<dict>
+		<key>_SPResponseTime</key>
+		<real>180.07441198825836</real>
+		<key>_SPTerminationStatus</key>
+		<integer>15</integer>
+		<key>_dataType</key>
+		<string>SPCameraDataType</string>
+		<key>_parentDataType</key>
+		<string>SPHardwareDataType</string>
+	</dict>
+</array>
+</plist>
