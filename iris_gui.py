@@ -249,6 +249,14 @@ class IRISGUI(tk.Tk):
         # Version
         tk.Label(bottom_frame, text="v3.6", fg="#999").grid(row=1, column=2, sticky="e")
 
+    def open_network_manager(self):
+        NetworkManagerDialog(self, self.helpers, self.app_instance)
+
+    def flush_dns(self):
+        self.log("🧹 Flushing DNS Cache...")
+        self.helpers.run_sudo_command("killall -HUP mDNSResponder")
+        self.log("✅ DNS Cache Flushed.")
+
     def log(self, msg):
         self.console.insert(tk.END, msg + "\n")
         self.console.see(tk.END)
