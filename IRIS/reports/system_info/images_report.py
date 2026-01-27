@@ -145,6 +145,42 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
         f['formatted_date'] = datetime.fromtimestamp(f['mtime']).strftime("%Y-%m-%d %H:%M")
         # Add file:// protocol for local access in the report (only works if opened locally)
         f['file_url'] = f"file://{f['path']}"
+
+    # Create Thumbnails (Physical Generation via SIPS)
+    report_dir = os.path.dirname(app_instance.report_output_dir) if hasattr(app_instance, 'report_output_dir') else os.getcwd()
+    thumbs_dir = os.path.join(report_dir, "thumbs")
+    if not os.path.exists(thumbs_dir):
+        try: os.makedirs(thumbs_dir)
+        except: pass
+    
+    app_instance.log_output(f"Generating thumbnails in {thumbs_dir} (Limit 300)...")
+    
+    # Check for sips availability
+    import subprocess
+    has_sips = False
+    try:
+        subprocess.run(['sips', '--version'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        has_sips = True
+    except: pass
+
+    if has_sips:
+        thumb_count = 0
+        for f in all_files:
+            if f['category'] == 'media_file' and thumb_count < 300:
+                try:
+                    # Use hash for safe filename
+                    safe_name = hashlib.md5(f['path'].encode()).hexdigest() + ".jpg"
+                    thumb_path = os.path.join(thumbs_dir, safe_name)
+                    
+                    # Generate if missing
+                    if not os.path.exists(thumb_path):
+                        cmd = ['sips', '-Z', '256', f['path'], '--out', thumb_path]
+                        subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=2)
+                    
+                    if os.path.exists(thumb_path):
+                        f['thumb_url'] = f"thumbs/{safe_name}"
+                        thumb_count += 1
+                except: pass
         
     json_data = json.dumps(all_files)
 
@@ -559,7 +595,9 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
              const ext = item.ext.toLowerCase();
              // Safe web images that browsers can render natively
              if (['.jpg','.jpeg','.png','.gif','.webp','.svg'].includes(ext)) {{
-                 return {{type:'img', src: item.file_url}};
+                 // Use generated thumb if available (safe relative path), else absolute (might be blocked)
+                 const src = item.thumb_url || item.file_url;
+                 return {{type:'img', src: src}};
              }}
              // Disk Images -> CD Icon
              if (['.dmg','.iso','.img','.dd','.cdr','.vmdk'].includes(ext)) {{
