@@ -148,10 +148,16 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
         
     json_data = json.dumps(all_files)
 
-    # 2. HTML SPA Shell (V2)
+    # 2. HTML SPA Shell (V3 with Lightbox)
     html_body = f"""
     <div id="app" class="report-app">
         
+        <!-- Lightbox Overlay -->
+        <div id="lightbox" class="lightbox" onclick="app.closeLightbox()">
+            <img id="lightboxImg" src="" onclick="event.stopPropagation()"> <!-- Stop prop to allow internal clicks if needed, though simple close is better -->
+            <button class="lightbox-close" onclick="app.closeLightbox()">×</button>
+        </div>
+
         <!-- Sidebar Preview Panel -->
         <div id="sidebar" class="sidebar">
             <div class="sidebar-header">
@@ -177,6 +183,12 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
                         <span class="search-icon">🔍</span>
                         <input type="text" id="searchInput" placeholder="Search filenames..." onkeyup="app.updateFilter()">
                     </div>
+                    
+                    <div class="filter-group" id="zoomControl">
+                        <label>Zoom:</label>
+                        <input type="range" id="zoomSlider" min="100" max="400" value="160" step="10" style="width:100px" oninput="app.updateZoom(this.value)">
+                    </div>
+
                     <div class="view-toggles">
                         <button class="btn-toggle active" onclick="app.setView('grid')" id="btn-grid">Grid</button>
                         <button class="btn-toggle" onclick="app.setView('list')" id="btn-list">List</button>
@@ -251,10 +263,16 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
     </div>
 
     <style>
-        :root {{ --primary: #007bff; --bg: #f8f9fa; --border: #dee2e6; --text: #333; --sidebar-w: 320px; }}
+        :root {{ --primary: #007bff; --bg: #f8f9fa; --border: #dee2e6; --text: #333; --sidebar-w: 320px; --grid-size: 160px; }}
         body {{ margin: 0; font-family: -apple-system, system-ui, sans-serif; background: #fff; color: var(--text); overflow: hidden; height: 100vh; }}
         
         .report-app {{ display: flex; height: 100vh; }}
+        
+        /* Lightbox */
+        .lightbox {{ position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; }}
+        .lightbox.active {{ display: flex; opacity: 1; }}
+        .lightbox img {{ max-width: 95%; max-height: 95%; box-shadow: 0 0 20px rgba(0,0,0,0.5); cursor: default; }}
+        .lightbox-close {{ position: absolute; top: 20px; right: 20px; font-size: 30px; color: #fff; background: none; border: none; cursor: pointer; }}
         
         /* Sidebar */
         .sidebar {{ width: var(--sidebar-w); background: #fff; border-right: 1px solid var(--border); display: flex; flex-direction: column; z-index: 200; box-shadow: 2px 0 5px rgba(0,0,0,0.05); transition: transform 0.3s; flex-shrink: 0; }}
@@ -292,22 +310,57 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
         .content-area {{ flex: 1; overflow-y: auto; padding: 20px; background: #fafafa; }}
         
         /* Grid View - Improved */
-        .view-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 20px; align-content: start; }}
+        .view-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--grid-size), 1fr)); gap: 20px; align-content: start; }}
         .card {{ background: #fff; border: 1px solid #eee; border-radius: 8px; overflow: hidden; transition: 0.2s; cursor: pointer; display: flex; flex-direction: column; height: 100%; }}
         .card:hover {{ transform: translateY(-3px); box-shadow: 0 8px 16px rgba(0,0,0,0.1); }}
         .card.selected {{ border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0,123,255,0.2); }}
         
-        .card-thumb {{ aspect-ratio: 16/10; background: #eee; display: flex; align-items: center; justify-content: center; overflow: hidden; width: 100%; }}
-        .card-thumb img {{ width: 100%; height: 100%; object-fit: cover; display: block; }}
-        .no-preview {{ font-weight: bold; color: #bbb; letter-spacing: 1px; }}
+        /* Thumbnail Fix: Aspect Ratio + High Robustness */
+        .card-thumb {{
+            position: relative;
+            width: 100%;
+            height: var(--grid-size) !important; /* Force height to match width logic */
+            aspect-ratio: 1 / 1;
+            background: #eee;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-bottom: 1px solid #f0f0f0;
+        }}
+        
+        /* Layered Fallback System */
+        .thumb-fallback {{
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1;
+            font-size: calc(var(--grid-size) * 0.4);
+            color: #bbb;
+        }}
+
+        .card-thumb img {{
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: cover;
+            display: block;
+            z-index: 2;
+            background: #eee; /* Covers fallback if loaded */
+        }}
+        
+        /* Scalable Icon Fallback for Non-Images */
+        .no-preview {{ font-weight: bold; color: #bbb; letter-spacing: 1px; font-size: calc(var(--grid-size) * 0.4); }}
         
         .card-body {{ padding: 10px; text-align: center; flex: 1; display: flex; flex-direction: column; justify-content: center; }}
         .card-title {{ font-size: 13px; font-weight: 500; color: #333; margin-bottom: 4px; word-break: break-word; line-height: 1.3; max-height: 2.6em; overflow: hidden; }}
         .card-meta {{ font-size: 11px; color: #888; }}
 
         /* List/Compact Views */
-        .view-list .list-row {{ padding: 12px; border-bottom: 1px solid #f0f0f0; }}
-        .list-icon {{ width: 48px; height: 48px; border-radius: 6px; margin-right: 15px; }}
+        .view-list .list-row {{ padding: 12px; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; }}
+        .list-icon {{ width: 48px; height: 48px; border-radius: 6px; margin-right: 15px; flex-shrink: 0; background: #eee; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }}
+        .list-icon img {{ width: 100%; height: 100%; object-fit: cover; display: block; position: absolute; top: 0; left: 0; z-index: 2; }}
+        .list-icon .thumb-fallback {{ font-size: 24px; position: absolute; top:0; left:0; width:100%; height:100%; z-index: 1; }}
+        .list-icon .no-preview {{ font-size: 24px; }}
     </style>
 
     <script>
@@ -332,7 +385,11 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
             this.applyFilters();
         }},
         
-        // ... (Keep existing logic methods: populateTypes, updateFilter, updateSort, setView, applyFilters, sortData, nextPage, prevPage, selectItem, closeSidebar, renderSidebar)
+        updateZoom: function(val) {{
+            document.documentElement.style.setProperty('--grid-size', val + "px");
+        }},
+        
+        // ... (Keep existing logic methods)
         
         populateTypes: function() {{
             const types = new Set(this.data.map(d => d.ext));
@@ -369,7 +426,33 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
             document.querySelectorAll('.btn-toggle').forEach(b => b.classList.remove('active'));
             document.getElementById('btn-'+v).classList.add('active');
             document.getElementById('contentArea').className = 'content-area view-' + v;
+            // Toggle Zoom visibility
+            document.getElementById('zoomControl').style.display = (v === 'grid') ? 'flex' : 'none';
             this.render();
+        }},
+
+        setSort: function(field) {{
+            if (this.sort === field + '_asc') {{
+                this.sort = field + '_desc';
+            }} else {{
+                this.sort = field + '_asc';
+            }}
+            document.getElementById('sortField').value = this.sort; // Sync dropdown
+            this.page = 1;
+            this.sortData();
+            this.render();
+        }},
+
+        openLightbox: function(src) {{
+            // Support both URL src strings and element refs from error handlers (ignore elements)
+            if (typeof src !== 'string' || !src.startsWith('file')) return; 
+            const lb = document.getElementById('lightbox');
+            document.getElementById('lightboxImg').src = src;
+            lb.classList.add('active');
+        }},
+        
+        closeLightbox: function() {{
+            document.getElementById('lightbox').classList.remove('active');
         }},
 
         applyFilters: function() {{
@@ -411,7 +494,8 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
                 if (s === 'size_asc') return a.size - b.size;
                 if (s === 'date_desc') return b.mtime - a.mtime;
                 if (s === 'date_asc') return a.mtime - b.mtime;
-                if (s === 'name') return a.name.localeCompare(b.name);
+                if (s === 'name_asc') return a.name.localeCompare(b.name);
+                if (s === 'name_desc') return b.name.localeCompare(a.name);
                 if (s === 'type') return a.ext.localeCompare(b.ext);
                 return 0;
             }});
@@ -446,8 +530,14 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
             
             const icon = this.getIcon(item);
             let thumbInfo = '';
-            if (icon.type === 'img') thumbInfo = `<img src="${{icon.src}}" style="max-width:100%; border-radius:4px; margin-bottom:15px; box-shadow:0 2px 5px rgba(0,0,0,0.1);">`;
-            else thumbInfo = `<div style="font-size:3em; color:#ccc; text-align:center; padding:20px;">${{icon.val}}</div>`;
+            // Simplified Sidebar Image logic (Reverted complexity)
+            if (icon.type === 'img') {{
+                thumbInfo = `<img src="${{icon.src}}" 
+                    style="max-width:100%; border-radius:4px; margin-bottom:15px; box-shadow:0 2px 5px rgba(0,0,0,0.1); cursor:zoom-in;" 
+                    onclick="app.openLightbox('${{icon.src}}')">`;
+            }} else {{
+                thumbInfo = `<div style="font-size:3em; color:#ccc; text-align:center; padding:20px;">${{icon.val}}</div>`;
+            }}
 
             content.innerHTML = `
                 ${{thumbInfo}}
@@ -466,9 +556,25 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
         }},
         
         getIcon: function(item) {{
-             const ext = item.ext;
-             if (['.jpg','.jpeg','.png','.gif','.webp','.svg'].includes(ext)) return {{type:'img', src: item.file_url}};
-             return {{type:'text', val: ext ? ext.replace('.','').toUpperCase().substring(0,4) : 'FILE'}};
+             const ext = item.ext.toLowerCase();
+             // Safe web images that browsers can render natively
+             if (['.jpg','.jpeg','.png','.gif','.webp','.svg'].includes(ext)) {{
+                 return {{type:'img', src: item.file_url}};
+             }}
+             // Disk Images -> CD Icon
+             if (['.dmg','.iso','.img','.dd','.cdr','.vmdk'].includes(ext)) {{
+                 return {{type:'text', val: '💿'}};
+             }}
+             // Non-Web Visual Media -> Picture Frame
+             if (['.tiff','.tif','.psd','.ai','.eps','.bmp','.heic'].includes(ext)) {{
+                 return {{type:'text', val: '🖼️'}};
+             }}
+             // Archives
+             if (['.zip','.tar','.gz','.7z'].includes(ext)) {{
+                 return {{type:'text', val: '📦'}};
+             }}
+             // Default Fallback
+             return {{type:'text', val: '📄'}};
         }},
 
         render: function() {{
@@ -487,7 +593,12 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
 
             let html = '';
             if (this.view === 'compact') {{
-                html = `<table class="compact-table"><thead><tr><th>Name</th><th>Size</th><th>Date</th><th>Path</th></tr></thead><tbody>`;
+                html = `<table class="compact-table"><thead><tr>
+                    <th onclick="app.setSort('name')" style="cursor:pointer">Name</th>
+                    <th onclick="app.setSort('size')" style="cursor:pointer">Size</th>
+                    <th onclick="app.setSort('date')" style="cursor:pointer">Date</th>
+                    <th>Path</th>
+                </tr></thead><tbody>`;
                 pageData.forEach(item => {{
                     const sel = item.id === this.selectedId ? 'selected' : '';
                     const dup = item.dup_group ? 'style="background:#fff3cd"' : '';
@@ -500,7 +611,19 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
                 pageData.forEach(item => {{
                     const sel = item.id === this.selectedId ? 'selected' : '';
                     const icon = this.getIcon(item);
-                    let thumb = (icon.type === 'img') ? `<img src="${{icon.src}}" loading="lazy">` : `<div class="no-preview">${{icon.val}}</div>`;
+                    
+                    // Robust Layered Rendering
+                    let thumb = '';
+                    if (icon.type === 'img') {{
+                         // Layered: Fallback is ALWAYS there (z-1). Image is on top (z-2). If image errors, we hide it.
+                         thumb = `
+                            <div class="thumb-fallback">🖼️</div>
+                            <img src="${{icon.src}}" loading="lazy" onerror="this.style.display='none'">
+                         `;
+                    }} else {{
+                         // Text icons
+                         thumb = `<div class="no-preview">${{icon.val}}</div>`;
+                    }}
                     
                     if (this.view === 'grid') {{
                         html += `
