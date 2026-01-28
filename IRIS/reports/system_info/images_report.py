@@ -180,8 +180,10 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
                     
                     # Generate if missing
                     if not os.path.exists(thumb_path):
-                        # sips -Z 800 for high-quality zooming (Scalable on the fly)
-                        cmd = ['sips', '-Z', '800', f['path'], '--out', thumb_path]
+                        # sips -Z 512 (Retina Standard) - Balanced for performance and scaling
+                        # -s format jpeg ensures standard opaque output
+                        # -s formatOptions 'high' (approx 80-90 quality)
+                        cmd = ['sips', '-Z', '512', '-s', 'format', 'jpeg', '-s', 'formatOptions', 'high', f['path'], '--out', thumb_path]
                         subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=4)
                     
                     if os.path.exists(thumb_path):
@@ -388,6 +390,7 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
             object-fit: cover;
             display: block;
             z-index: 2;
+            background: #fff; /* Key: Hides the fallback icon behind it */
         }}
         
         /* Scalable Icon Fallback for Non-Images */
@@ -400,7 +403,7 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
         /* List/Compact Views */
         .view-list .list-row {{ padding: 12px; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; }}
         .list-icon {{ width: 48px; height: 48px; border-radius: 6px; margin-right: 15px; flex-shrink: 0; background: #eee; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }}
-        .list-icon img {{ width: 100%; height: 100%; object-fit: cover; display: block; position: absolute; top: 0; left: 0; z-index: 2; }}
+        .list-icon img {{ width: 100%; height: 100%; object-fit: cover; display: block; position: absolute; top: 0; left: 0; z-index: 2; background: #fff; }}
         .list-icon .thumb-fallback {{ font-size: 24px; position: absolute; top:0; left:0; width:100%; height:100%; z-index: 1; }}
         .list-icon .no-preview {{ font-size: 24px; }}
     </style>
