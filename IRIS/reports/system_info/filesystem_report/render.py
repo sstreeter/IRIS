@@ -118,9 +118,42 @@ def get_html_body(json_data: str) -> str:
 
     <style>
         :root {{ --primary: #007bff; --bg: #f8f9fa; --border: #dee2e6; --text: #333; --sidebar-w: 320px; --grid-size: 160px; }}
-        body {{ margin: 0; font-family: -apple-system, system-ui, sans-serif; background: #fff; color: var(--text); overflow: hidden; height: 100vh; }}
         
-        .report-app {{ display: flex; height: 100vh; }}
+        /* Override template body styles for full-height app */
+        body {{ 
+            margin: 0 !important; 
+            padding: 0 !important;
+            font-family: -apple-system, system-ui, sans-serif; 
+            background: #fff !important; 
+            color: var(--text); 
+            overflow: hidden; 
+            height: 100vh; 
+        }}
+        
+        /* Override template container to not interfere */
+        .container {{
+            max-width: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }}
+        
+        /* Hide template headers - they're redundant with our toolbar */
+        .container > h1,
+        .container > p {{
+            display: none;
+        }}
+        
+        .report-app {{ 
+            display: flex; 
+            height: 100vh; 
+            flex: 1;
+        }}
         
         /* Lightbox */
         .lightbox {{ position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; }}
@@ -174,21 +207,18 @@ def get_html_body(json_data: str) -> str:
         .btn-toggle:last-child {{ border-right: none; }}
         .btn-toggle.active {{ background: var(--primary); color: #fff; }}
 
-        /* Content Area - TRUE Fixed Viewport (No Flex Growth) */
+        /* Content Area - Fixed Height Viewport */
         .content-area {{ 
-            /* Fixed height: exactly 4 rows + gaps + padding */
             height: calc((var(--grid-size) * 4) + (20px * 3) + 40px);
-            min-height: calc((100px * 4) + 60px + 40px); /* Min: 4 rows at 100px */
-            max-height: calc((400px * 4) + 60px + 40px); /* Max: 4 rows at 400px */
             overflow-y: scroll; 
             overflow-x: hidden;
             padding: 20px; 
             background: #fafafa;
-            flex-shrink: 0; /* Don't shrink */
-            flex-grow: 0;   /* Don't grow */
+            flex-shrink: 0;
+            flex-grow: 0;
         }}
         
-        /* Elegant 20px Wide Scrollbar with Textured Track */
+        /* Wide Scrollbar with Textured Track */
         .content-area::-webkit-scrollbar {{
             width: 20px;
         }}
@@ -240,41 +270,6 @@ def get_html_body(json_data: str) -> str:
                 #c8c8c8 80%,
                 #a8a8a8 100%
             );
-        }}
-        
-        /* Scrollbar Arrow Buttons with SVG Arrows */
-        .content-area::-webkit-scrollbar-button:single-button {{
-            height: 20px;
-            width: 20px;
-            background: linear-gradient(to bottom, #f4f4f4 0%, #d8d8d8 100%);
-            border: 1px solid #989898;
-            display: block;
-            background-repeat: no-repeat;
-            background-position: center;
-        }}
-        
-        /* Up Arrow (Top) - SVG Triangle */
-        .content-area::-webkit-scrollbar-button:single-button:vertical:decrement {{
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M5 2 L8 7 L2 7 Z' fill='%23606060'/%3E%3C/svg%3E");
-            background-color: #f4f4f4;
-            background-image: linear-gradient(to bottom, #f4f4f4 0%, #d8d8d8 100%), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M5 2 L8 7 L2 7 Z' fill='%23606060'/%3E%3C/svg%3E");
-            border-bottom: 1px solid #b8b8b8;
-        }}
-        
-        .content-area::-webkit-scrollbar-button:single-button:vertical:decrement:hover {{
-            background-image: linear-gradient(to bottom, #e8e8e8 0%, #c8c8c8 100%), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M5 2 L8 7 L2 7 Z' fill='%23404040'/%3E%3C/svg%3E");
-        }}
-        
-        /* Down Arrow (Bottom) - SVG Triangle */
-        .content-area::-webkit-scrollbar-button:single-button:vertical:increment {{
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M5 8 L8 3 L2 3 Z' fill='%23606060'/%3E%3C/svg%3E");
-            background-color: #f4f4f4;
-            background-image: linear-gradient(to bottom, #f4f4f4 0%, #d8d8d8 100%), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M5 8 L8 3 L2 3 Z' fill='%23606060'/%3E%3C/svg%3E");
-            border-top: 1px solid #b8b8b8;
-        }}
-        
-        .content-area::-webkit-scrollbar-button:single-button:vertical:increment:hover {{
-            background-image: linear-gradient(to bottom, #e8e8e8 0%, #c8c8c8 100%), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M5 8 L8 3 L2 3 Z' fill='%23404040'/%3E%3C/svg%3E");
         }}
         
         /* Grid View - Image-First Design */

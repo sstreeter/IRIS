@@ -30,6 +30,7 @@ Thumbs.db
 # Generated Reports
 *.html
 reports/
+thumbs/
 
 # Keep the source code directory for reports, but ignore artifacts
 !IRIS/reports/
