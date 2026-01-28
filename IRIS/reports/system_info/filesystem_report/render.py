@@ -212,6 +212,7 @@ def get_html_body(json_data: str) -> str:
             height: calc((var(--grid-size) * 4) + (20px * 3) + 40px);
             overflow-y: scroll; 
             overflow-x: hidden;
+            overscroll-behavior-y: contain; /* Prevent scroll chaining to body */
             padding: 20px; 
             background: #fafafa;
             flex-shrink: 0;
