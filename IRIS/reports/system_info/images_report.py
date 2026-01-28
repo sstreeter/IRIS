@@ -147,7 +147,9 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
         f['file_url'] = f"file://{f['path']}"
 
     # Create Thumbnails (Physical Generation via SIPS)
-    report_dir = os.path.dirname(app_instance.report_output_dir) if hasattr(app_instance, 'report_output_dir') else os.getcwd()
+    # Create Thumbnails (Physical Generation via SIPS)
+    # The app_instance attribute is 'report_output_directory', not 'report_output_dir'
+    report_dir = getattr(app_instance, 'report_output_directory', 'reports')
     thumbs_dir = os.path.join(report_dir, "thumbs")
     if not os.path.exists(thumbs_dir):
         try: os.makedirs(thumbs_dir)
@@ -155,6 +157,10 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
     
     app_instance.log_output(f"Generating thumbnails in {thumbs_dir} (Limit 300)...")
     
+    # Prioritize extensions as suggested by user: jpeg, jpg, png, then others
+    priority_exts = {'.jpeg', '.jpg', '.png'}
+    sorted_files = sorted(all_files, key=lambda x: (x['ext'].lower() not in priority_exts, x['ext'].lower()))
+
     # Check for sips availability
     import subprocess
     has_sips = False
@@ -165,7 +171,7 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
 
     if has_sips:
         thumb_count = 0
-        for f in all_files:
+        for f in sorted_files:
             if f['category'] == 'media_file' and thumb_count < 300:
                 try:
                     # Use hash for safe filename
@@ -174,10 +180,12 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
                     
                     # Generate if missing
                     if not os.path.exists(thumb_path):
-                        cmd = ['sips', '-Z', '256', f['path'], '--out', thumb_path]
-                        subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=2)
+                        # sips -Z 800 for high-quality zooming (Scalable on the fly)
+                        cmd = ['sips', '-Z', '800', f['path'], '--out', thumb_path]
+                        subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=4)
                     
                     if os.path.exists(thumb_path):
+                        # Link is relative to the HTML report file, so just 'thumbs/xxx.jpg'
                         f['thumb_url'] = f"thumbs/{safe_name}"
                         thumb_count += 1
                 except: pass
@@ -352,11 +360,11 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
         .card.selected {{ border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0,123,255,0.2); }}
         
         /* Thumbnail Fix: Aspect Ratio + High Robustness */
+        /* Thumbnail Robustness */
         .card-thumb {{
             position: relative;
             width: 100%;
-            height: var(--grid-size) !important; /* Force height to match width logic */
-            aspect-ratio: 1 / 1;
+            height: var(--grid-size);
             background: #eee;
             overflow: hidden;
             display: flex;
@@ -365,23 +373,22 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
             border-bottom: 1px solid #f0f0f0;
         }}
         
-        /* Layered Fallback System */
         .thumb-fallback {{
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
             display: flex; align-items: center; justify-content: center;
             z-index: 1;
             font-size: calc(var(--grid-size) * 0.4);
-            color: #bbb;
+            color: #ccc;
         }}
 
         .card-thumb img {{
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
+            position: relative; /* Use relative to not conflict with layout if something went wrong */
+            width: 100%;
+            height: 100%;
             object-fit: cover;
             display: block;
             z-index: 2;
-            background: #eee; /* Covers fallback if loaded */
         }}
         
         /* Scalable Icon Fallback for Non-Images */
