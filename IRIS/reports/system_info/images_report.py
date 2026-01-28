@@ -420,11 +420,10 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
         search: '',
         filters: {{ size:'all', type:'all', date:'all', disk:true, media:true }},
         page: 1,
-        pageSize: 100, // Keep 100 for balance
+        pageSize: 100,
         selectedId: null,
 
         init: function() {{
-            // Defer heavy init if needed, but 10k items in memory is fine for modern JS engines
             this.data = window.fileData.map((d, i) => ({{...d, id: i}}));
             this.populateTypes();
             this.applyFilters();
@@ -434,12 +433,10 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
             document.documentElement.style.setProperty('--grid-size', val + "px");
         }},
         
-        // ... (Keep existing logic methods)
-        
         populateTypes: function() {{
             const types = new Set(this.data.map(d => d.ext));
             const sel = document.getElementById('typeFilter');
-            sel.innerHTML = '<option value="all">All Types</option>'; // Clear first to allow re-runs if needed
+            sel.innerHTML = '<option value="all">All Types</option>';
             Array.from(types).sort().forEach(t => {{
                 const opt = document.createElement('option');
                 opt.value = t;
@@ -475,21 +472,41 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
             document.getElementById('zoomControl').style.display = (v === 'grid') ? 'flex' : 'none';
             this.render();
         }},
-
+        
+        // setSort helper removed as user logic handles dropdown direct updates properly via updateSort
+        // But table headers use setSort... wait. 
+        // User snippet REMOVED setSort but table headers call app.setSort('name').
+        // I MUST RE-ADD setSort because the HTML calls it!
         setSort: function(field) {{
             if (this.sort === field + '_asc') {{
                 this.sort = field + '_desc';
+            }} else if (this.sort === field + '_desc') {{
+               this.sort = field + '_asc';
             }} else {{
-                this.sort = field + '_asc';
+               this.sort = field + '_asc';
             }}
-            document.getElementById('sortField').value = this.sort; // Sync dropdown
+            // Special handling for 'name' which user simplified to just 'name'
+            if (field === 'name') {{
+                // User logic uses just 'name', but table headers act as toggles.
+                // Let's stick to the user's simplified 'name' if selected, but for column headers we need direction.
+                // Actually the user's logic only supports one 'name' sort.
+                // Current dropdown has just <option value="name">Name</option>
+                // So if user clicks header 'Name', what should happen?
+                // The user logic has: if (s === 'name') return a.name.localeCompare(b.name);
+                // It does NOT support name_desc.
+                // I will add name_desc back to user logic to support table sorting.
+                
+                if (this.sort === 'name') this.sort = 'name_desc';
+                else this.sort = 'name';
+            }}
+             
+            document.getElementById('sortField').value = this.sort; 
             this.page = 1;
             this.sortData();
             this.render();
         }},
 
         openLightbox: function(src) {{
-            // Support both URL src strings and element refs from error handlers (ignore elements)
             if (typeof src !== 'string' || !src.startsWith('file')) return; 
             const lb = document.getElementById('lightbox');
             document.getElementById('lightboxImg').src = src;
@@ -501,28 +518,24 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
         }},
 
         applyFilters: function() {{
-            const now = new Date();
+            const now = Date.now() / 1000; // User preferred syntax
             this.filtered = this.data.filter(item => {{
                 if (item.category === 'disk_image' && !this.filters.disk) return false;
                 if (item.category === 'media_file' && !this.filters.media) return false;
                 if (this.search && !item.name.toLowerCase().includes(this.search)) return false;
                 if (this.filters.type !== 'all' && item.ext !== this.filters.type) return false;
                 
-                // Size
-                if (this.filters.size !== 'all') {{
-                    const s = item.size;
-                    if (this.filters.size === 'small' && s >= 1048576) return false;
-                    if (this.filters.size === 'medium' && (s < 1048576 || s >= 104857600)) return false;
-                    if (this.filters.size === 'large'  && (s < 104857600 || s >= 1073741824)) return false;
-                    if (this.filters.size === 'huge'   && s < 1073741824) return false;
-                }}
+                const s = item.size;
+                if (this.filters.size === 'small' && s >= 1048576) return false;
+                if (this.filters.size === 'medium' && (s < 1048576 || s >= 104857600)) return false;
+                if (this.filters.size === 'large'  && (s < 104857600 || s >= 1073741824)) return false;
+                if (this.filters.size === 'huge'   && s < 1073741824) return false;
 
-                // Date
                 if (this.filters.date !== 'all') {{
-                    const ageDays = (now.getTime() / 1000 - item.mtime) / 86400;
-                    if (this.filters.date === 'today' && ageDays > 1) return false;
-                    if (this.filters.date === 'week' && ageDays > 7) return false;
-                    if (this.filters.date === 'month' && ageDays > 30) return false;
+                    const age = (now - item.mtime) / 86400;
+                    if (this.filters.date === 'today' && age > 1) return false;
+                    if (this.filters.date === 'week' && age > 7) return false;
+                    if (this.filters.date === 'month' && age > 30) return false;
                 }}
                 
                 return true;
@@ -539,8 +552,9 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
                 if (s === 'size_asc') return a.size - b.size;
                 if (s === 'date_desc') return b.mtime - a.mtime;
                 if (s === 'date_asc') return a.mtime - b.mtime;
-                if (s === 'name_asc') return a.name.localeCompare(b.name);
-                if (s === 'name_desc') return b.name.localeCompare(a.name);
+                if (s === 'name') return a.name.localeCompare(b.name);
+                if (s === 'name_asc') return a.name.localeCompare(b.name); // Support explicit asc
+                if (s === 'name_desc') return b.name.localeCompare(a.name); // Support explicit desc
                 if (s === 'type') return a.ext.localeCompare(b.ext);
                 return 0;
             }});
