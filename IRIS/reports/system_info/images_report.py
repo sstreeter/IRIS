@@ -383,9 +383,8 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
         }}
 
         .card-thumb img {{
-            position: relative; /* Use relative to not conflict with layout if something went wrong */
-            width: 100%;
-            height: 100%;
+            position: absolute; /* Replicating List View 'Algorithm' for perfect fit */
+            top: 0; left: 0; width: 100%; height: 100%;
             object-fit: cover;
             display: block;
             z-index: 2;
@@ -600,11 +599,16 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
         
         getIcon: function(item) {{
              const ext = item.ext.toLowerCase();
-             // Safe web images that browsers can render natively
+             
+             // UNIFIED LOGIC: If a generated thumbnail exists, USE IT.
+             // This covers both web-safe images (using local thumbs) AND non-web images (using sips-converted thumbs)
+             if (item.thumb_url) {{
+                 return {{type:'img', src: item.thumb_url}};
+             }}
+
+             // Safe web images fallback to absolute path (if no thumb generated yet)
              if (['.jpg','.jpeg','.png','.gif','.webp','.svg'].includes(ext)) {{
-                 // Use generated thumb if available (safe relative path), else absolute (might be blocked)
-                 const src = item.thumb_url || item.file_url;
-                 return {{type:'img', src: src}};
+                 return {{type:'img', src: item.file_url}};
              }}
              // Disk Images -> CD Icon
              if (['.dmg','.iso','.img','.dd','.cdr','.vmdk'].includes(ext)) {{
