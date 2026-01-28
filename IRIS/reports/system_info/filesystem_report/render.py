@@ -1,206 +1,14 @@
-import plistlib
-import os
-import hashlib
-import json
-from datetime import datetime
-from typing import Any, List, Dict
-from ...helpers import Helpers, MockAppInstance
+from typing import Any
+from IRIS.helpers import Helpers
 
-# Extensions to look for
-DISK_IMAGE_EXTS = {'.iso', '.dmg', '.img', '.dd', '.cdr', '.vmdk', '.vmwarevm'}
-# Visual Media: Raster + Vector
-MEDIA_EXTS = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp', '.heic', '.svg', '.ai', '.eps', '.psd', '.pdf'}
 
-def get_partial_hash(file_path: str, chunk_size: int = 4096) -> str:
-    """Read first and last chunk to create a quick signature for large files."""
-    try:
-        size = os.path.getsize(file_path)
-        if size == 0: return "empty"
-        with open(file_path, 'rb') as f:
-            start = f.read(chunk_size)
-            if size > chunk_size:
-                f.seek(-chunk_size, 2)
-                end = f.read(chunk_size)
-            else:
-                end = b""
-            return hashlib.md5(start + end).hexdigest()
-    except:
-        return "error"
-
-def format_size(size_bytes: int) -> str:
-    if size_bytes == 0: return "0 B"
-    units = ["B", "KB", "MB", "GB", "TB"]
-    i = 0
-    while size_bytes >= 1024 and i < len(units) - 1:
-        size_bytes /= 1024
-        i += 1
-    return f"{size_bytes:.2f} {units[i]}"
-
-def scan_user_directories(app_instance: Any) -> List[Dict[str, Any]]:
-    """
-    Scans user directories for both Disk Images and Media Files.
-    Returns a unified list of file objects with 'category' field.
-    """
-    found_files = []
-    
-    # Directories to scan
-    scan_roots = [
-        os.path.expanduser("~/Downloads"),
-        os.path.expanduser("~/Documents"),
-        os.path.expanduser("~/Desktop"),
-        os.path.expanduser("~/Public"),
-        os.path.expanduser("~/Pictures"),
-        "/Applications"
-    ]
-    
-    app_instance.log_output("Scanning user directories for disk images and media...")
-    
-    # Time Filter
-    tr = getattr(app_instance, 'time_range', {})
-    t_start = tr.get("start")
-    t_end = tr.get("end")
-
-    for root_dir in scan_roots:
-        if not os.path.exists(root_dir): continue
-        
-        for root, dirs, files in os.walk(root_dir, topdown=True):
-            # Skip hidden dirs, Library, etc.
-            dirs[:] = [d for d in dirs if not d.startswith('.') and d not in ('Library', 'node_modules', '.git')]
-            
-            for name in files:
-                if name.startswith('.'): continue
-                ext = os.path.splitext(name)[1].lower()
-                
-                category = None
-                if ext in DISK_IMAGE_EXTS:
-                    category = "disk_image"
-                elif ext in MEDIA_EXTS:
-                    category = "media_file"
-                
-                if category:
-                    full_path = os.path.join(root, name)
-                    try:
-                        stats = os.stat(full_path)
-                        # Filter by Time
-                        if t_start or t_end:
-                            mtime_dt = datetime.fromtimestamp(stats.st_mtime)
-                            if t_start and mtime_dt < t_start: continue
-                            if t_end and mtime_dt > t_end: continue
-                            
-                        item = {
-                            "name": name,
-                            "path": full_path,
-                            "size": stats.st_size,
-                            "mtime": stats.st_mtime,
-                            "ext": ext,
-                            "category": category,
-                            "dup_group": None
-                        }
-                        found_files.append(item)
-                    except: pass
-                    
-    return found_files
-
-def analyze_duplicates(files: List[Dict[str, Any]]):
-    """Mark duplicates based on Size + Partial Hash."""
-    if not files: return
-    # 1. Group by Size
-    by_size = {}
-    for f in files:
-        if f['category'] != 'disk_image': continue # skip media for now to save time
-        s = f['size']
-        if s not in by_size: by_size[s] = []
-        by_size[s].append(f)
-        
-    # 2. For same size, check partial hash
-    for size, sublist in by_size.items():
-        if len(sublist) > 1:
-            by_hash = {}
-            for f in sublist:
-                ph = get_partial_hash(f['path'])
-                if ph not in by_hash: by_hash[ph] = []
-                by_hash[ph].append(f)
-            
-            for ph, dupes in by_hash.items():
-                if len(dupes) > 1:
-                    grp_id = ph[:8]
-                    for d in dupes:
-                        d['dup_group'] = grp_id
-
-def generate_images_report(app_instance: Any, helpers: Helpers, browser_preference: str = "System Default"):
-    """
-    Reports on Disk Images & Visual Media using a Client-Side SPA approach.
-    Embeds data as JSON and uses JS for dynamic Rendering, Sorting, Filtering, and Pagination.
-    """
-    app_instance.log_output("\n--- Generating Advanced Filesystem Artifacts Report ---")
-    
-    # 1. Gather Data
-    all_files = scan_user_directories(app_instance)
-    analyze_duplicates(all_files)
-    
-    # Serialize to JSON (Need to make sure keys are safe)
-    # We add a 'formatted_size' and 'formatted_date' for easier JS display initially
-    for f in all_files:
-        f['formatted_size'] = format_size(f['size'])
-        f['formatted_date'] = datetime.fromtimestamp(f['mtime']).strftime("%Y-%m-%d %H:%M")
-        # Add file:// protocol for local access in the report (only works if opened locally)
-        f['file_url'] = f"file://{f['path']}"
-
-    # Create Thumbnails (Physical Generation via SIPS)
-    # Create Thumbnails (Physical Generation via SIPS)
-    # The app_instance attribute is 'report_output_directory', not 'report_output_dir'
-    report_dir = getattr(app_instance, 'report_output_directory', 'reports')
-    thumbs_dir = os.path.join(report_dir, "thumbs")
-    if not os.path.exists(thumbs_dir):
-        try: os.makedirs(thumbs_dir)
-        except: pass
-    
-    app_instance.log_output(f"Generating thumbnails in {thumbs_dir} (Limit 300)...")
-    
-    # Prioritize extensions as suggested by user: jpeg, jpg, png, then others
-    priority_exts = {'.jpeg', '.jpg', '.png'}
-    sorted_files = sorted(all_files, key=lambda x: (x['ext'].lower() not in priority_exts, x['ext'].lower()))
-
-    # Check for sips availability
-    import subprocess
-    has_sips = False
-    try:
-        subprocess.run(['sips', '--version'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        has_sips = True
-    except: pass
-
-    if has_sips:
-        thumb_count = 0
-        for f in sorted_files:
-            if f['category'] == 'media_file' and thumb_count < 300:
-                try:
-                    # Use hash for safe filename
-                    safe_name = hashlib.md5(f['path'].encode()).hexdigest() + ".jpg"
-                    thumb_path = os.path.join(thumbs_dir, safe_name)
-                    
-                    # Generate if missing
-                    if not os.path.exists(thumb_path):
-                        # sips -Z 512 (Retina Standard) - Balanced for performance and scaling
-                        # -s format jpeg ensures standard opaque output
-                        # -s formatOptions 'high' (approx 80-90 quality)
-                        cmd = ['sips', '-Z', '512', '-s', 'format', 'jpeg', '-s', 'formatOptions', 'high', f['path'], '--out', thumb_path]
-                        subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=4)
-                    
-                    if os.path.exists(thumb_path):
-                        # Link is relative to the HTML report file, so just 'thumbs/xxx.jpg'
-                        f['thumb_url'] = f"thumbs/{safe_name}"
-                        thumb_count += 1
-                except: pass
-        
-    json_data = json.dumps(all_files)
-
-    # 2. HTML SPA Shell (V3 with Lightbox)
-    html_body = f"""
+def get_html_body(json_data: str) -> str:
+    return f"""
     <div id="app" class="report-app">
         
         <!-- Lightbox Overlay -->
         <div id="lightbox" class="lightbox" onclick="app.closeLightbox()">
-            <img id="lightboxImg" src="" onclick="event.stopPropagation()"> <!-- Stop prop to allow internal clicks if needed, though simple close is better -->
+            <img id="lightboxImg" src="" onclick="event.stopPropagation()">
             <button class="lightbox-close" onclick="app.closeLightbox()">×</button>
         </div>
 
@@ -330,11 +138,25 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
         .btn-action {{ display: block; text-align: center; padding: 10px; border-radius: 4px; text-decoration: none; border: 1px solid var(--border); background: #fff; color: #333; }}
         .btn-action.primary {{ background: var(--primary); color: #fff; border: none; }}
         
-        /* Main Layout */
-        .main-layout {{ flex: 1; display: flex; flex-direction: column; min-width: 0; }}
+        /* Main Layout - Don't Expand */
+        .main-layout {{ 
+            flex: 1; 
+            display: flex; 
+            flex-direction: column; 
+            min-width: 0;
+            max-height: 100vh;
+            overflow: hidden;
+        }}
         
-        /* Toolbar */
-        .sticky-toolbar {{ background: #fff; border-bottom: 1px solid var(--border); padding: 12px 20px; z-index: 100; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }}
+        /* Toolbar - Fixed Height */
+        .sticky-toolbar {{ 
+            background: #fff; 
+            border-bottom: 1px solid var(--border); 
+            padding: 12px 20px; 
+            z-index: 100; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            flex-shrink: 0;
+        }}
         .toolbar-row {{ display: flex; flex-wrap: wrap; align-items: center; gap: 15px; margin-bottom: 10px; }} /* Added wrap */
         .toolbar-row.secondary {{ margin-bottom: 0; font-size: 13px; color: #666; justify-content: space-between; }}
         
@@ -352,27 +174,138 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
         .btn-toggle:last-child {{ border-right: none; }}
         .btn-toggle.active {{ background: var(--primary); color: #fff; }}
 
-        /* Content Area */
-        .content-area {{ flex: 1; overflow-y: auto; padding: 20px; background: #fafafa; }}
+        /* Content Area - TRUE Fixed Viewport (No Flex Growth) */
+        .content-area {{ 
+            /* Fixed height: exactly 4 rows + gaps + padding */
+            height: calc((var(--grid-size) * 4) + (20px * 3) + 40px);
+            min-height: calc((100px * 4) + 60px + 40px); /* Min: 4 rows at 100px */
+            max-height: calc((400px * 4) + 60px + 40px); /* Max: 4 rows at 400px */
+            overflow-y: scroll; 
+            overflow-x: hidden;
+            padding: 20px; 
+            background: #fafafa;
+            flex-shrink: 0; /* Don't shrink */
+            flex-grow: 0;   /* Don't grow */
+        }}
         
-        /* Grid View - Improved */
+        /* Elegant 20px Wide Scrollbar with Textured Track */
+        .content-area::-webkit-scrollbar {{
+            width: 20px;
+        }}
+        
+        .content-area::-webkit-scrollbar-track {{
+            background: 
+                repeating-linear-gradient(
+                    45deg,
+                    #e0e0e0,
+                    #e0e0e0 2px,
+                    #ececec 2px,
+                    #ececec 4px
+                );
+            border-left: 1px solid #b8b8b8;
+            border-right: 1px solid #ffffff;
+            box-shadow: inset 1px 0 2px rgba(0,0,0,0.1);
+        }}
+        
+        .content-area::-webkit-scrollbar-thumb {{
+            background: linear-gradient(to right, 
+                #c8c8c8 0%, 
+                #e8e8e8 20%,
+                #f4f4f4 50%, 
+                #e8e8e8 80%,
+                #c8c8c8 100%
+            );
+            border: 1px solid #989898;
+            border-radius: 3px;
+            box-shadow: 
+                inset 0 0 0 1px rgba(255,255,255,0.6),
+                0 1px 3px rgba(0,0,0,0.15);
+        }}
+        
+        .content-area::-webkit-scrollbar-thumb:hover {{
+            background: linear-gradient(to right, 
+                #b8b8b8 0%, 
+                #d8d8d8 20%,
+                #e4e4e4 50%, 
+                #d8d8d8 80%,
+                #b8b8b8 100%
+            );
+        }}
+        
+        .content-area::-webkit-scrollbar-thumb:active {{
+            background: linear-gradient(to right, 
+                #a8a8a8 0%, 
+                #c8c8c8 20%,
+                #d4d4d4 50%, 
+                #c8c8c8 80%,
+                #a8a8a8 100%
+            );
+        }}
+        
+        /* Scrollbar Arrow Buttons with SVG Arrows */
+        .content-area::-webkit-scrollbar-button:single-button {{
+            height: 20px;
+            width: 20px;
+            background: linear-gradient(to bottom, #f4f4f4 0%, #d8d8d8 100%);
+            border: 1px solid #989898;
+            display: block;
+            background-repeat: no-repeat;
+            background-position: center;
+        }}
+        
+        /* Up Arrow (Top) - SVG Triangle */
+        .content-area::-webkit-scrollbar-button:single-button:vertical:decrement {{
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M5 2 L8 7 L2 7 Z' fill='%23606060'/%3E%3C/svg%3E");
+            background-color: #f4f4f4;
+            background-image: linear-gradient(to bottom, #f4f4f4 0%, #d8d8d8 100%), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M5 2 L8 7 L2 7 Z' fill='%23606060'/%3E%3C/svg%3E");
+            border-bottom: 1px solid #b8b8b8;
+        }}
+        
+        .content-area::-webkit-scrollbar-button:single-button:vertical:decrement:hover {{
+            background-image: linear-gradient(to bottom, #e8e8e8 0%, #c8c8c8 100%), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M5 2 L8 7 L2 7 Z' fill='%23404040'/%3E%3C/svg%3E");
+        }}
+        
+        /* Down Arrow (Bottom) - SVG Triangle */
+        .content-area::-webkit-scrollbar-button:single-button:vertical:increment {{
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M5 8 L8 3 L2 3 Z' fill='%23606060'/%3E%3C/svg%3E");
+            background-color: #f4f4f4;
+            background-image: linear-gradient(to bottom, #f4f4f4 0%, #d8d8d8 100%), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M5 8 L8 3 L2 3 Z' fill='%23606060'/%3E%3C/svg%3E");
+            border-top: 1px solid #b8b8b8;
+        }}
+        
+        .content-area::-webkit-scrollbar-button:single-button:vertical:increment:hover {{
+            background-image: linear-gradient(to bottom, #e8e8e8 0%, #c8c8c8 100%), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M5 8 L8 3 L2 3 Z' fill='%23404040'/%3E%3C/svg%3E");
+        }}
+        
+        /* Grid View - Image-First Design */
         .view-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--grid-size), 1fr)); gap: 20px; align-content: start; }}
-        .card {{ background: #fff; border: 1px solid #eee; border-radius: 8px; overflow: hidden; transition: 0.2s; cursor: pointer; display: flex; flex-direction: column; height: 100%; }}
-        .card:hover {{ transform: translateY(-3px); box-shadow: 0 8px 16px rgba(0,0,0,0.1); }}
+        .card {{ 
+            background: #fff; 
+            border: 1px solid #eee; 
+            border-radius: 8px; 
+            overflow: hidden; 
+            transition: 0.2s; 
+            cursor: pointer; 
+            display: flex; 
+            flex-direction: column;
+            height: var(--grid-size);
+            position: relative;
+        }}
+        .card:hover {{ transform: translateY(-3px); box-shadow: 0 8px 16px rgba(0,0,0,0.15); }}
         .card.selected {{ border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0,123,255,0.2); }}
         
-        /* Thumbnail Fix: Aspect Ratio + High Robustness */
-        /* Thumbnail Robustness */
+        /* Card Thumbnail - Full Card Background */
         .card-thumb {{
-            position: relative;
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
-            height: var(--grid-size);
+            height: 100%;
             background: #eee;
             overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-bottom: 1px solid #f0f0f0;
         }}
         
         .thumb-fallback {{
@@ -385,20 +318,54 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
         }}
 
         .card-thumb img {{
-            position: absolute; /* Replicating List View 'Algorithm' for perfect fit */
+            position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
             object-fit: cover;
             display: block;
             z-index: 2;
-            background: #fff; /* Key: Hides the fallback icon behind it */
         }}
         
-        /* Scalable Icon Fallback for Non-Images */
-        .no-preview {{ font-weight: bold; color: #bbb; letter-spacing: 1px; font-size: calc(var(--grid-size) * 0.4); }}
+        /* No preview icon for non-images */
+        .no-preview {{ 
+            font-weight: bold; 
+            color: #bbb; 
+            letter-spacing: 1px; 
+            font-size: calc(var(--grid-size) * 0.4); 
+            z-index: 3;
+        }}
         
-        .card-body {{ padding: 10px; text-align: center; flex: 1; display: flex; flex-direction: column; justify-content: center; }}
-        .card-title {{ font-size: 13px; font-weight: 500; color: #333; margin-bottom: 4px; word-break: break-word; line-height: 1.3; max-height: 2.6em; overflow: hidden; }}
-        .card-meta {{ font-size: 11px; color: #888; }}
+        /* Card Body - Overlaid on Image */
+        .card-body {{ 
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 8px 10px;
+            background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.5) 70%, transparent 100%);
+            z-index: 10;
+            pointer-events: none;
+        }}
+        
+        .card-title {{ 
+            font-size: 12px; 
+            font-weight: 500; 
+            color: #fff;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+            margin-bottom: 2px; 
+            word-break: break-word; 
+            line-height: 1.2; 
+            max-height: 2.4em; 
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }}
+        
+        .card-meta {{ 
+            font-size: 10px; 
+            color: rgba(255,255,255,0.9);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+        }}
 
         /* List/Compact Views */
         .view-list .list-row {{ padding: 12px; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; }}
@@ -411,7 +378,6 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
     <script>
     window.fileData = {json_data};
     
-    // Performance: Use a fragment for DOM updates
     const APP = {{
         data: [],
         filtered: [],
@@ -420,13 +386,18 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
         search: '',
         filters: {{ size:'all', type:'all', date:'all', disk:true, media:true }},
         page: 1,
-        pageSize: 100,
+        pageSize: 50, // Reduced from 100 for better initial performance
         selectedId: null,
+        renderBatchSize: 20, // Render 20 items at a time for progressive rendering
+        isRendering: false,
 
         init: function() {{
             this.data = window.fileData.map((d, i) => ({{...d, id: i}}));
             this.populateTypes();
             this.applyFilters();
+            // Explicitly set grid-size to ensure it's applied
+            const zoomValue = document.getElementById('zoomSlider').value;
+            document.documentElement.style.setProperty('--grid-size', zoomValue + 'px');
         }},
         
         updateZoom: function(val) {{
@@ -472,11 +443,7 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
             document.getElementById('zoomControl').style.display = (v === 'grid') ? 'flex' : 'none';
             this.render();
         }},
-        
-        // setSort helper removed as user logic handles dropdown direct updates properly via updateSort
-        // But table headers use setSort... wait. 
-        // User snippet REMOVED setSort but table headers call app.setSort('name').
-        // I MUST RE-ADD setSort because the HTML calls it!
+
         setSort: function(field) {{
             if (this.sort === field + '_asc') {{
                 this.sort = field + '_desc';
@@ -485,21 +452,13 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
             }} else {{
                this.sort = field + '_asc';
             }}
+            
             // Special handling for 'name' which user simplified to just 'name'
             if (field === 'name') {{
-                // User logic uses just 'name', but table headers act as toggles.
-                // Let's stick to the user's simplified 'name' if selected, but for column headers we need direction.
-                // Actually the user's logic only supports one 'name' sort.
-                // Current dropdown has just <option value="name">Name</option>
-                // So if user clicks header 'Name', what should happen?
-                // The user logic has: if (s === 'name') return a.name.localeCompare(b.name);
-                // It does NOT support name_desc.
-                // I will add name_desc back to user logic to support table sorting.
-                
                 if (this.sort === 'name') this.sort = 'name_desc';
                 else this.sort = 'name';
             }}
-             
+            
             document.getElementById('sortField').value = this.sort; 
             this.page = 1;
             this.sortData();
@@ -518,7 +477,7 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
         }},
 
         applyFilters: function() {{
-            const now = Date.now() / 1000; // User preferred syntax
+            const now = Date.now() / 1000;
             this.filtered = this.data.filter(item => {{
                 if (item.category === 'disk_image' && !this.filters.disk) return false;
                 if (item.category === 'media_file' && !this.filters.media) return false;
@@ -553,8 +512,8 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
                 if (s === 'date_desc') return b.mtime - a.mtime;
                 if (s === 'date_asc') return a.mtime - b.mtime;
                 if (s === 'name') return a.name.localeCompare(b.name);
-                if (s === 'name_asc') return a.name.localeCompare(b.name); // Support explicit asc
-                if (s === 'name_desc') return b.name.localeCompare(a.name); // Support explicit desc
+                if (s === 'name_asc') return a.name.localeCompare(b.name);
+                if (s === 'name_desc') return b.name.localeCompare(a.name);
                 if (s === 'type') return a.ext.localeCompare(b.ext);
                 return 0;
             }});
@@ -571,7 +530,7 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
 
         selectItem: function(id) {{
             this.selectedId = id;
-            this.render(); // Re-render to show selected state
+            this.render(); 
             this.renderSidebar(this.data[id]);
         }},
         
@@ -589,7 +548,7 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
             
             const icon = this.getIcon(item);
             let thumbInfo = '';
-            // Simplified Sidebar Image logic (Reverted complexity)
+            
             if (icon.type === 'img') {{
                 thumbInfo = `<img src="${{icon.src}}" 
                     style="max-width:100%; border-radius:4px; margin-bottom:15px; box-shadow:0 2px 5px rgba(0,0,0,0.1); cursor:zoom-in;" 
@@ -618,12 +577,11 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
              const ext = item.ext.toLowerCase();
              
              // UNIFIED LOGIC: If a generated thumbnail exists, USE IT.
-             // This covers both web-safe images (using local thumbs) AND non-web images (using sips-converted thumbs)
              if (item.thumb_url) {{
                  return {{type:'img', src: item.thumb_url}};
              }}
 
-             // Safe web images fallback to absolute path (if no thumb generated yet)
+             // Safe web images fallback to absolute path
              if (['.jpg','.jpeg','.png','.gif','.webp','.svg'].includes(ext)) {{
                  return {{type:'img', src: item.file_url}};
              }}
@@ -639,13 +597,14 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
              if (['.zip','.tar','.gz','.7z'].includes(ext)) {{
                  return {{type:'text', val: '📦'}};
              }}
-             // Default Fallback
              return {{type:'text', val: '📄'}};
         }},
 
         render: function() {{
+            if (this.isRendering) return; // Prevent concurrent renders
+            this.isRendering = true;
+            
             const container = document.getElementById('contentArea');
-            // Use fragment for speed
             container.innerHTML = '';
             
             const start = (this.page - 1) * this.pageSize;
@@ -657,63 +616,127 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
             document.getElementById('btnPrev').disabled = (this.page === 1);
             document.getElementById('btnNext').disabled = (this.page === maxPage);
 
-            let html = '';
+            // Show loading indicator for large datasets
+            if (pageData.length > this.renderBatchSize) {{
+                container.innerHTML = '<div style="text-align:center; padding:40px; color:#666;">Rendering ${{pageData.length}} items...</div>';
+            }}
+
+            // Special handling for table view - create table structure first
             if (this.view === 'compact') {{
-                html = `<table class="compact-table"><thead><tr>
+                const table = document.createElement('table');
+                table.className = 'compact-table';
+                table.innerHTML = `<thead><tr>
                     <th onclick="app.setSort('name')" style="cursor:pointer">Name</th>
                     <th onclick="app.setSort('size')" style="cursor:pointer">Size</th>
                     <th onclick="app.setSort('date')" style="cursor:pointer">Date</th>
                     <th>Path</th>
-                </tr></thead><tbody>`;
-                pageData.forEach(item => {{
-                    const sel = item.id === this.selectedId ? 'selected' : '';
-                    const dup = item.dup_group ? 'style="background:#fff3cd"' : '';
-                    html += `<tr class="${{sel}}" ${{dup}} onclick="app.selectItem(${{item.id}})">
-                        <td>${{item.name}}</td><td>${{item.formatted_size}}</td><td>${{item.formatted_date}}</td><td title="${{item.path}}"><div style="max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${{item.path}}</div></td>
-                    </tr>`;
-                }});
-                html += '</tbody></table>';
-            }} else {{
-                pageData.forEach(item => {{
-                    const sel = item.id === this.selectedId ? 'selected' : '';
-                    const icon = this.getIcon(item);
-                    
-                    // Robust Layered Rendering
-                    let thumb = '';
-                    if (icon.type === 'img') {{
-                         // Layered: Fallback is ALWAYS there (z-1). Image is on top (z-2). If image errors, we hide it.
-                         thumb = `
-                            <div class="thumb-fallback">🖼️</div>
-                            <img src="${{icon.src}}" loading="lazy" onerror="this.style.display='none'">
-                         `;
-                    }} else {{
-                         // Text icons
-                         thumb = `<div class="no-preview">${{icon.val}}</div>`;
-                    }}
-                    
-                    if (this.view === 'grid') {{
-                        html += `
-                        <div class="card ${{sel}}" onclick="app.selectItem(${{item.id}})">
-                            <div class="card-thumb">${{thumb}}</div>
-                            <div class="card-body">
-                                <div class="card-title" title="${{item.name}}">${{item.name}}</div>
-                                <div class="card-meta">${{item.formatted_size}}</div>
-                            </div>
-                        </div>`;
-                    }} else {{
-                        html += `
-                        <div class="list-row ${{sel}}" onclick="app.selectItem(${{item.id}})">
-                            <div class="list-icon">${{thumb}}</div>
-                            <div style="flex:1; min-width:0;">
-                                <div style="font-weight:500; margin-bottom:2px;">${{item.name}}</div>
-                                <div style="font-size:11px; color:#888; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${{item.path}}</div>
-                            </div>
-                            <div style="flex-shrink:0; width:100px; text-align:right; font-size:12px; color:#666;">${{item.formatted_size}}</div>
-                        </div>`;
-                    }}
-                }});
+                </tr></thead>`;
+                const tbody = document.createElement('tbody');
+                table.appendChild(tbody);
+                container.innerHTML = '';
+                container.appendChild(table);
             }}
-            container.innerHTML = html;
+
+            // Progressive rendering for better performance
+            let currentIndex = 0;
+            const self = this;
+            
+            function renderBatch() {{
+                const batchEnd = Math.min(currentIndex + self.renderBatchSize, pageData.length);
+                const fragment = document.createDocumentFragment();
+                
+                for (let i = currentIndex; i < batchEnd; i++) {{
+                    const item = pageData[i];
+                    const element = self.createItemElement(item);
+                    if (element) {{
+                        fragment.appendChild(element);
+                    }}
+                }}
+                
+                // Append to appropriate container
+                if (self.view === 'compact') {{
+                    const tbody = container.querySelector('tbody');
+                    tbody.appendChild(fragment);
+                }} else {{
+                    // Clear loading message on first batch for grid/list views
+                    if (currentIndex === 0) {{
+                        container.innerHTML = '';
+                    }}
+                    container.appendChild(fragment);
+                }}
+                
+                currentIndex = batchEnd;
+                
+                // Continue rendering if there are more items
+                if (currentIndex < pageData.length) {{
+                    requestAnimationFrame(renderBatch);
+                }} else {{
+                    self.isRendering = false;
+                }}
+            }}
+            
+            // Start progressive rendering
+            requestAnimationFrame(renderBatch);
+        }},
+        
+        createItemElement: function(item) {{
+            const sel = item.id === this.selectedId ? 'selected' : '';
+            const icon = this.getIcon(item);
+            
+            if (this.view === 'compact') {{
+                const tr = document.createElement('tr');
+                tr.className = sel;
+                if (item.dup_group) tr.style.background = '#fff3cd';
+                tr.onclick = () => this.selectItem(item.id);
+                tr.innerHTML = `
+                    <td>${{item.name}}</td>
+                    <td>${{item.formatted_size}}</td>
+                    <td>${{item.formatted_date}}</td>
+                    <td title="${{item.path}}">
+                        <div style="max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                            ${{item.path}}
+                        </div>
+                    </td>`;
+                return tr;
+            }} else {{
+                let thumb = '';
+                if (icon.type === 'img') {{
+                    thumb = `
+                        <div class="thumb-fallback">🖼️</div>
+                        <img src="${{icon.src}}" loading="lazy" onerror="this.style.display='none'">
+                    `;
+                }} else {{
+                    thumb = `<div class="no-preview">${{icon.val}}</div>`;
+                }}
+                
+                const div = document.createElement('div');
+                div.onclick = () => this.selectItem(item.id);
+                
+                if (this.view === 'grid') {{
+                    div.className = `card ${{sel}}`;
+                    div.innerHTML = `
+                        <div class="card-thumb">${{thumb}}</div>
+                        <div class="card-body">
+                            <div class="card-title" title="${{item.name}}">${{item.name}}</div>
+                            <div class="card-meta">${{item.formatted_size}}</div>
+                        </div>`;
+                }} else {{
+                    div.className = `list-row ${{sel}}`;
+                    div.innerHTML = `
+                        <div class="list-icon">${{thumb}}</div>
+                        <div style="flex:1; min-width:0;">
+                            <div style="font-weight:500; margin-bottom:2px;">${{item.name}}</div>
+                            <div style="font-size:11px; color:#888; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                                ${{item.path}}
+                            </div>
+                        </div>
+                        <div style="flex-shrink:0; width:100px; text-align:right; font-size:12px; color:#666;">
+                            ${{item.formatted_size}}
+                        </div>`;
+                }}
+                
+                return div;
+            }}
         }}
     }};
     
@@ -721,12 +744,23 @@ def generate_images_report(app_instance: Any, helpers: Helpers, browser_preferen
     window.app = APP;
     </script>
     """
+
+
+def render_report(
+    app_instance: Any,
+    helpers: Helpers,
+    json_data: str,
+    # html_body argument removed as we generate it here
+    browser_preference: str,
+) -> None:
+    # Generate the body here using the JSON data
+    html_body = get_html_body(json_data)
     
     helpers.generate_report_html(
-        app_instance, 
-        app_instance.suspect_computer_name, 
-        "Images_Report.html", 
-        "Advanced Disk & Media Artifacts", 
+        app_instance,
+        app_instance.suspect_computer_name,
+        "Images_Report.html",
+        "Advanced Disk & Media Artifacts",
         html_body,
-        browser_preference=browser_preference
+        browser_preference=browser_preference,
     )

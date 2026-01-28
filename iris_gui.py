@@ -16,7 +16,7 @@ if script_dir not in sys.path:
 from IRIS.helpers import MockAppInstance, Helpers
 
 # Report generation functions grouped for clarity
-from IRIS.reports.system_info import system_hardware_info, usb_camera_bluetooth_report, images_report
+from IRIS.reports.system_info import system_hardware_info, usb_camera_bluetooth_report
 from IRIS.reports.user_security import (
     antivirus_status_report, web_history_report, console_log_report,
     user_activity_report
@@ -33,6 +33,7 @@ from IRIS.reports.persistence_malware import (
     script_check_report, process_persistence_report
 )
 
+from IRIS.reports.system_info.filesystem_report.report import generate_images_report
 from IRIS.reports.network.network_manager import NetworkManagerDialog
 
 class IRISGUI(tk.Tk):
@@ -200,6 +201,7 @@ class IRISGUI(tk.Tk):
             "Ping": self.run_ping_report,
             "User Downloads": self.run_user_activity_report,
             "Chrome Extension": self.run_user_activity_report,
+            "Disable Network": self.open_network_manager,  # Connected to Manager
             "Scan URL": lambda: self.open_browser_tool("https://www.virustotal.com/gui/home/upload"),
             "Lookup Host": lambda: self.open_browser_tool("https://ipinfo.io/"),
             "Check IP Reputation": lambda: self.open_browser_tool("https://www.talosintelligence.com/")
@@ -344,7 +346,7 @@ class IRISGUI(tk.Tk):
                                  "Process Persistence Report", browser_pref)
 
     def run_images_report(self, browser_pref=None):
-        return self._run_wrapper(images_report.generate_images_report,
+        return self._run_wrapper(generate_images_report,
                                  "Images Report", browser_pref)
 
     def run_console_log_report(self, browser_pref=None):
